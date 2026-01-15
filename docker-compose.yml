@@ -37,6 +37,7 @@ services:
       - WHISPER_MODEL=${WHISPER_MODEL:-medium}
       - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
       - WHISPER_BEAM_SIZE=${WHISPER_BEAM_SIZE:-5}
+      - WHISPER_DEBUG=${WHISPER_DEBUG:-false}
 
     # Port for Wyoming protocol
     ports:
