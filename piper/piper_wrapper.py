@@ -18,9 +18,13 @@ logging.basicConfig(
     stream=sys.stdout
 )
 
+# Detect number of CPU cores
+num_threads = os.cpu_count() or 4
+logging.info(f"Detected {num_threads} CPU cores, setting thread count accordingly")
+
 # Configure ONNX Runtime threading to prevent affinity errors
 # This must be done before importing onnxruntime
-os.environ['OMP_NUM_THREADS'] = '4'
+os.environ['OMP_NUM_THREADS'] = str(num_threads)
 os.environ['OMP_WAIT_POLICY'] = 'PASSIVE'
 os.environ['OMP_PROC_BIND'] = 'false'
 
@@ -34,14 +38,14 @@ try:
         # Create session options if not provided
         if 'sess_options' not in kwargs or kwargs['sess_options'] is None:
             sess_options = ort.SessionOptions()
-            sess_options.intra_op_num_threads = 4
-            sess_options.inter_op_num_threads = 4
+            sess_options.intra_op_num_threads = num_threads
+            sess_options.inter_op_num_threads = num_threads
             sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
             kwargs['sess_options'] = sess_options
         else:
             # Modify existing session options
-            kwargs['sess_options'].intra_op_num_threads = 4
-            kwargs['sess_options'].inter_op_num_threads = 4
+            kwargs['sess_options'].intra_op_num_threads = num_threads
+            kwargs['sess_options'].inter_op_num_threads = num_threads
             kwargs['sess_options'].execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
         return original_init(self, *args, **kwargs)
