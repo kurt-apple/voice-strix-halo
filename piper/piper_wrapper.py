@@ -5,6 +5,18 @@ Wrapper to configure ONNX Runtime thread settings before starting wyoming-piper
 import os
 import sys
 import asyncio
+import logging
+
+# Ensure output is unbuffered
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+# Configure logging to show all output
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(levelname)s:%(name)s:%(message)s',
+    stream=sys.stdout
+)
 
 # Configure ONNX Runtime threading to prevent affinity errors
 # This must be done before importing onnxruntime
