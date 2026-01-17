@@ -40,9 +40,10 @@ RUN pip install --no-cache-dir \
 # Create directory for models and voices
 RUN mkdir -p /data/models /data/voices
 
-# Copy entrypoint script
+# Copy scripts
 COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+COPY piper_wrapper.py /app/piper_wrapper.py
+RUN chmod +x /app/entrypoint.sh /app/piper_wrapper.py
 
 # Expose Wyoming protocol port
 EXPOSE 10200

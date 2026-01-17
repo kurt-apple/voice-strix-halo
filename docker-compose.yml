@@ -91,6 +91,8 @@ services:
       - OMP_NUM_THREADS=4
       - OMP_WAIT_POLICY=PASSIVE
       - OMP_PROC_BIND=false
+      - ORT_NUM_INTER_OP_THREADS=4
+      - ORT_NUM_INTRA_OP_THREADS=4
       # Piper voice configuration
       - PIPER_VOICE=${PIPER_VOICE:-en_US-lessac-medium}
       - PIPER_LENGTH_SCALE=${PIPER_LENGTH_SCALE:-1.0}

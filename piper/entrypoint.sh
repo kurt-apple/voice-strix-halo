@@ -8,8 +8,8 @@ PIPER_NOISE_SCALE="${PIPER_NOISE_SCALE:-0.667}"
 PIPER_NOISE_W="${PIPER_NOISE_W:-0.8}"
 PIPER_DEBUG="${PIPER_DEBUG:-false}"
 
-# Build command - wyoming-piper will download piper binary automatically
-CMD="python3 -m wyoming_piper \
+# Build command - use wrapper to configure ONNX Runtime threading
+CMD="python3 /app/piper_wrapper.py \
     --voice $PIPER_VOICE \
     --length-scale $PIPER_LENGTH_SCALE \
     --noise-scale $PIPER_NOISE_SCALE \
