@@ -1,21 +1,27 @@
-# Wyoming `faster-whisper` (ROCm 7.1.1)
+# Wyoming Voice Services (ROCm 7.1.1)
 
-Docker setup for Wyoming + `faster-whisper` with [ctranslate2-rocm](https://github.com/paralin/ctranslate2-rocm/blob/rocm/ROCM.md) designed for the AMD Ryzen AI Max 395+ (Radeon 8060S)
+Docker setup for Wyoming + `faster-whisper` (STT) and `piper` (TTS) with [ctranslate2-rocm](https://github.com/paralin/ctranslate2-rocm/blob/rocm/ROCM.md) designed for the AMD Ryzen AI Max 395+ (Radeon 8060S)
 
 ## Features
 
-- **Whisper Medium Model** for high-quality speech recognition
+- **Whisper Medium Model** for high-quality speech recognition (STT)
+- **Piper TTS** for natural text-to-speech synthesis
 - **ROCm 7.1.1** GPU acceleration for AMD GPUs
 - **Wyoming Protocol** for easy Home Assistant integration
 - **CTranslate2-rocm** (paralin fork) for native AMD GPU support with HIP
+
+## Services
+
+- **wyoming-whisper** - Speech-to-Text on port 10300
+- **wyoming-piper** - Text-to-Speech on port 10200
 
 ## Prerequisites
 
 - AMD GPU (i.e. Radeon 8060S from Ryzen AI Max 395+)
 - ROCm drivers installed on host (version 7.1.1)
 - Docker and Docker Compose
-- ~5GB VRAM for medium model
-- ~15GB disk space for Docker image (larger due to multi-arch build)
+- ~5GB VRAM for Whisper medium model
+- ~20GB disk space for Docker images (larger due to multi-arch build)
 
 ## Installation
 
@@ -55,8 +61,9 @@ docker compose up -d --build
 
 ## Home Assistant Integration
 
-### Add Wyoming Integration
+### Add Wyoming Integrations
 
+#### Speech-to-Text (Whisper)
 1. Go to **Settings** → **Devices & Services** → **Add Integration**
 2. Search for **"Wyoming Protocol"**
 3. Enter connection details:
@@ -64,17 +71,25 @@ docker compose up -d --build
    - **Port**: `10300`
 4. Click **Submit**
 
+#### Text-to-Speech (Piper)
+1. Go to **Settings** → **Devices & Services** → **Add Integration**
+2. Search for **"Wyoming Protocol"**
+3. Enter connection details:
+   - **Host**: `<docker-host-ip>` (e.g., `192.168.1.100`)
+   - **Port**: `10200`
+4. Click **Submit**
+
 ## Configuration
 
-### Change Whisper Model
+All configuration is via `.env` file. Copy `.env.example` to `.env` and adjust.
 
-Edit `Dockerfile` entrypoint to use different model sizes:
+### Whisper (STT) Configuration
 
-```dockerfile
-ENTRYPOINT ["python3", "-m", "wyoming_faster_whisper", \
-    "--model", "tiny",  # Options: tiny, base, small, medium, large
-    ...
-```
+Available environment variables:
+- `WHISPER_MODEL` - Model size: tiny, base, small, medium (default), large
+- `WHISPER_COMPUTE_TYPE` - float16 (default), int8
+- `WHISPER_BEAM_SIZE` - 1-10, default 5 (higher = better quality, slower)
+- `WHISPER_DEBUG` - true/false
 
 Model sizes and VRAM requirements:
 - **tiny**: ~1GB VRAM, fastest, good for simple commands
@@ -83,24 +98,54 @@ Model sizes and VRAM requirements:
 - **medium**: ~5GB VRAM, high accuracy (default)
 - **large**: ~10GB VRAM, best accuracy, slower
 
-### Adjust Performance
+### Piper (TTS) Configuration
 
-Edit `Dockerfile` entrypoint:
+Available environment variables:
+- `PIPER_VOICE` - Voice model (default: en_US-lessac-medium)
+- `PIPER_LENGTH_SCALE` - Speech speed, 1.0 = normal, <1.0 = faster, >1.0 = slower
+- `PIPER_NOISE_SCALE` - Voice variation, 0.0-1.0
+- `PIPER_NOISE_W` - Phoneme duration variation, 0.0-1.0
+- `PIPER_DEBUG` - true/false
 
-```dockerfile
-# Faster, lower quality
---compute-type int8
---beam-size 1
+Available voices: https://github.com/rhasspy/piper/blob/master/VOICES.md
 
-# Slower, higher quality
---compute-type float16
---beam-size 5
+Popular voices:
+- `en_US-lessac-medium` - Natural female voice (default)
+- `en_US-libritts-high` - High quality multi-speaker
+- `en_GB-alan-medium` - British male voice
+- `en_US-ryan-high` - Clear male voice
+
+## Troubleshooting
+
+### Check Service Status
+```bash
+docker-compose ps
+```
+
+### View Logs
+```bash
+# Whisper logs
+docker-compose logs -f wyoming-whisper
+
+# Piper logs
+docker-compose logs -f wyoming-piper
+```
+
+### Test Connectivity
+```bash
+# Test Whisper
+nc -zv localhost 10300
+
+# Test Piper
+nc -zv localhost 10200
 ```
 
 ## Resources
 
 - [Wyoming Protocol](https://github.com/rhasspy/wyoming)
 - [Faster Whisper](https://github.com/SYSTRAN/faster-whisper)
+- [Piper TTS](https://github.com/rhasspy/piper)
+- [Piper Voice Samples](https://rhasspy.github.io/piper-samples/)
 - [paralin/ctranslate2-rocm](https://github.com/paralin/ctranslate2-rocm) - ROCm fork used
 - [paralin/whisperX-rocm](https://github.com/paralin/whisperX-rocm) - Reference for ROCm setup
 - [ROCm Documentation](https://rocm.docs.amd.com/)
