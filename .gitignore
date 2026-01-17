@@ -3,7 +3,7 @@
 
 # Data directories
 data/
-tts-data/
+piper-data/
 
 # Docker
 docker-compose.override.yml

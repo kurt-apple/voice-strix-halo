@@ -57,7 +57,7 @@ services:
 
   wyoming-piper:
     build:
-      context: ./tts
+      context: ./piper
       dockerfile: Dockerfile
       args:
         HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-11.5.1}
@@ -87,6 +87,10 @@ services:
       - ROCM_VERSION=7.1.1
       - ROCM_PATH=/opt/rocm
       - LD_LIBRARY_PATH=/usr/local/lib:/opt/rocm/lib:/opt/rocm/lib/llvm/lib
+      # ONNX Runtime threading configuration - prevents thread affinity errors
+      - OMP_NUM_THREADS=4
+      - OMP_WAIT_POLICY=PASSIVE
+      - OMP_PROC_BIND=false
       # Piper voice configuration
       - PIPER_VOICE=${PIPER_VOICE:-en_US-lessac-medium}
       - PIPER_LENGTH_SCALE=${PIPER_LENGTH_SCALE:-1.0}
@@ -100,7 +104,7 @@ services:
 
     # Volume for model persistence
     volumes:
-      - ./tts-data:/data
+      - ./piper-data:/data
 
     # Health check
     healthcheck:
