@@ -4,6 +4,7 @@ Wrapper to configure ONNX Runtime thread settings before starting wyoming-piper
 """
 import os
 import sys
+import asyncio
 
 # Configure ONNX Runtime threading to prevent affinity errors
 # This must be done before importing onnxruntime
@@ -41,4 +42,4 @@ except ImportError:
 from wyoming_piper.__main__ import main
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
