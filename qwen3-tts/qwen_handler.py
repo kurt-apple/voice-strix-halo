@@ -49,13 +49,25 @@ def get_model(
             }
             torch_dtype = dtype_map.get(dtype.lower(), torch.bfloat16)
 
+            # Prepare kwargs for from_pretrained
+            model_kwargs = {
+                "device_map": device,
+                "torch_dtype": torch_dtype,
+            }
+
+            # Add flash attention if requested and dtype is compatible
+            if flash_attention and torch_dtype in (torch.bfloat16, torch.float16):
+                model_kwargs["attn_implementation"] = "flash_attention_2"
+                _LOGGER.info("Attempting to use flash_attention_2")
+
+            # Add cache directory if specified
+            if cache_dir:
+                model_kwargs["cache_dir"] = cache_dir
+
             try:
-                _model_cache = Qwen3TTSModel(
-                    model_name=model_name,
-                    device=device,
-                    dtype=torch_dtype,
-                    use_flash_attention=flash_attention,
-                    cache_dir=cache_dir,
+                _model_cache = Qwen3TTSModel.from_pretrained(
+                    model_name,
+                    **model_kwargs
                 )
                 _LOGGER.info("Model loaded successfully")
             except Exception as e:
