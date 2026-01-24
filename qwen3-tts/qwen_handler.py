@@ -70,6 +70,8 @@ class QwenEventHandler(AsyncEventHandler):
 
     def __init__(
         self,
+        reader,
+        writer,
         wyoming_info: Info,
         model_name: str,
         voice_instruct: str,
@@ -79,11 +81,9 @@ class QwenEventHandler(AsyncEventHandler):
         flash_attention: bool,
         samples_per_chunk: int,
         cache_dir: Optional[str] = None,
-        *args,
-        **kwargs,
     ) -> None:
         """Initialize handler."""
-        super().__init__(*args, **kwargs)
+        super().__init__(reader, writer)
 
         self.wyoming_info = wyoming_info
         self.model_name = model_name
