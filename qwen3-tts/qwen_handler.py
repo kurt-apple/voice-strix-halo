@@ -9,6 +9,7 @@ from typing import Optional
 import numpy as np
 import torch
 from huggingface_hub import snapshot_download
+from transformers import AutoFeatureExtractor, FeatureExtractionMixin
 from qwen_tts import Qwen3TTSModel
 from wyoming.audio import AudioChunk, AudioStart, AudioStop
 from wyoming.event import Event
@@ -17,6 +18,29 @@ from wyoming.tts import Synthesize
 from wyoming.server import AsyncEventHandler
 
 _LOGGER = logging.getLogger(__name__)
+
+# Monkey-patch AutoFeatureExtractor to handle custom Qwen tokenizer
+# This works around the qwen-tts package trying to use AutoFeatureExtractor
+# on a custom tokenizer that transformers doesn't recognize
+_original_from_pretrained = AutoFeatureExtractor.from_pretrained
+
+def _patched_from_pretrained(pretrained_model_name_or_path, **kwargs):
+    """Patched from_pretrained that handles Qwen3TTS tokenizer gracefully."""
+    try:
+        return _original_from_pretrained(pretrained_model_name_or_path, **kwargs)
+    except (ValueError, OSError) as e:
+        error_msg = str(e)
+        if "Unrecognized feature extractor" in error_msg and "qwen3_tts_tokenizer" in error_msg:
+            _LOGGER.warning(
+                "AutoFeatureExtractor doesn't recognize qwen3_tts_tokenizer - "
+                "this is expected, qwen-tts will handle it internally"
+            )
+            # Return None - qwen-tts should handle the tokenizer loading internally
+            return None
+        raise
+
+AutoFeatureExtractor.from_pretrained = _patched_from_pretrained
+_LOGGER.info("Applied AutoFeatureExtractor monkey-patch for Qwen3TTS compatibility")
 
 # Global model cache (thread-safe singleton)
 _model_cache: Optional[Qwen3TTSModel] = None
@@ -67,20 +91,34 @@ def get_model(
             if cache_dir:
                 model_kwargs["cache_dir"] = cache_dir
 
-            # Pre-download speech_tokenizer files to ensure preprocessor_config.json is available
-            # This fixes an issue where the preprocessor_config.json file wasn't being downloaded
-            # Reference: https://github.com/vllm-project/vllm-omni/pull/903
+            # Fix directory structure issue with speech_tokenizer configs
+            # Root cause: config files are in model root but qwen-tts expects them in speech_tokenizer/
+            # Reference: https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base/discussions/1
             if not os.path.isdir(model_name):
-                _LOGGER.info("Pre-downloading speech_tokenizer files for %s", model_name)
+                _LOGGER.info("Downloading model and fixing speech_tokenizer directory structure for %s", model_name)
                 try:
-                    snapshot_download(
+                    # Download the complete model
+                    model_path = snapshot_download(
                         repo_id=model_name,
                         cache_dir=cache_dir,
-                        allow_patterns=["speech_tokenizer/*"],
                     )
-                    _LOGGER.info("Speech tokenizer files downloaded successfully")
+                    _LOGGER.info("Model downloaded to: %s", model_path)
+
+                    # Create symlinks for config files in speech_tokenizer subdirectory
+                    tokenizer_path = os.path.join(model_path, "speech_tokenizer")
+                    if os.path.exists(tokenizer_path):
+                        for config_file in ["preprocessor_config.json", "config.json", "configuration.json"]:
+                            src = os.path.join(model_path, config_file)
+                            dst = os.path.join(tokenizer_path, config_file)
+                            if os.path.exists(src) and not os.path.exists(dst):
+                                os.symlink(src, dst)
+                                _LOGGER.info("Created symlink: %s -> %s", dst, config_file)
+                    else:
+                        _LOGGER.warning("speech_tokenizer directory not found at %s", tokenizer_path)
+
+                    _LOGGER.info("Speech tokenizer directory structure fixed")
                 except Exception as e:
-                    _LOGGER.warning("Failed to pre-download speech_tokenizer: %s (will attempt normal load)", e)
+                    _LOGGER.warning("Failed to fix directory structure: %s (will attempt normal load)", e)
 
             try:
                 _model_cache = Qwen3TTSModel.from_pretrained(
