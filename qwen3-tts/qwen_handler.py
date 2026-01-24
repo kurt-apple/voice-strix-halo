@@ -76,12 +76,26 @@ def get_model(
             # Handle quantization and dtype
             if dtype.lower() in ["int8", "8bit"]:
                 # 8-bit quantization using BitsAndBytes
-                model_kwargs["load_in_8bit"] = True
-                _LOGGER.info("Using 8-bit quantization")
+                try:
+                    import bitsandbytes
+                    model_kwargs["load_in_8bit"] = True
+                    _LOGGER.info("Using 8-bit quantization (bitsandbytes available)")
+                except ImportError:
+                    _LOGGER.error("BitsAndBytes not installed! Cannot use int8. Install with: pip install bitsandbytes")
+                    # Fall back to bfloat16
+                    model_kwargs["dtype"] = torch.bfloat16
+                    _LOGGER.info("Falling back to bfloat16")
             elif dtype.lower() in ["int4", "4bit"]:
                 # 4-bit quantization using BitsAndBytes
-                model_kwargs["load_in_4bit"] = True
-                _LOGGER.info("Using 4-bit quantization")
+                try:
+                    import bitsandbytes
+                    model_kwargs["load_in_4bit"] = True
+                    _LOGGER.info("Using 4-bit quantization (bitsandbytes available)")
+                except ImportError:
+                    _LOGGER.error("BitsAndBytes not installed! Cannot use int4. Install with: pip install bitsandbytes")
+                    # Fall back to bfloat16
+                    model_kwargs["dtype"] = torch.bfloat16
+                    _LOGGER.info("Falling back to bfloat16")
             else:
                 # Standard dtype
                 dtype_map = {
@@ -162,19 +176,23 @@ def get_model(
                     _LOGGER.warning("Failed to fix directory structure: %s (will attempt normal load)", e)
 
             try:
+                _LOGGER.info("Calling Qwen3TTSModel.from_pretrained with kwargs: %s", model_kwargs)
                 _model_cache = Qwen3TTSModel.from_pretrained(
                     model_name,
                     **model_kwargs
                 )
                 _LOGGER.info("Model loaded successfully")
-
-                # Note: torch.compile doesn't work on Qwen3TTSModel class directly
-                # Would need to compile individual forward methods, but this adds complexity
-                # and may not provide significant speedup on this architecture
-
-            except Exception as e:
-                _LOGGER.error("Failed to load model: %s", e)
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower():
+                    _LOGGER.error("GPU out of memory! Try int8 quantization or smaller model")
                 raise
+            except Exception as e:
+                _LOGGER.error("Failed to load model: %s", e, exc_info=True)
+                raise
+
+            # Note: torch.compile doesn't work on Qwen3TTSModel class directly
+            # Would need to compile individual forward methods, but this adds complexity
+            # and may not provide significant speedup on this architecture
 
         return _model_cache
 
