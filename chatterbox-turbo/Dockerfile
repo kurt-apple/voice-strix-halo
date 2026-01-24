@@ -15,11 +15,8 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Try experimental ROCm 7.1 PyTorch builds from download.pytorch.org
-# Falls back to base image torch if not available
-RUN pip3 install --no-cache-dir --force-reinstall \
-    --index-url https://download.pytorch.org/whl/rocm7.1 \
-    torch torchaudio triton || echo "Using base image torch"
+# Use PyTorch from base image (already ROCm 7.1 compatible)
+# Don't reinstall - the base image has the correct ROCm build
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir \
