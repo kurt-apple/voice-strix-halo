@@ -98,11 +98,14 @@ def get_model(
                 _LOGGER.info("Downloading model and fixing speech_tokenizer directory structure for %s", model_name)
                 try:
                     # Download the complete model
+                    # Use HF_HOME environment variable instead of cache_dir parameter
+                    # to ensure we're modifying the correct cache location
+                    hf_cache = os.environ.get('HF_HOME') or os.environ.get('TRANSFORMERS_CACHE') or cache_dir
                     model_path = snapshot_download(
                         repo_id=model_name,
-                        cache_dir=cache_dir,
+                        cache_dir=hf_cache,
                     )
-                    _LOGGER.info("Model downloaded to: %s", model_path)
+                    _LOGGER.info("Model downloaded to: %s (cache: %s)", model_path, hf_cache)
 
                     # Create symlinks for config files in speech_tokenizer subdirectory
                     tokenizer_path = os.path.join(model_path, "speech_tokenizer")
