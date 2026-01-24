@@ -1,4 +1,4 @@
-FROM rocm/pytorch:rocm7.1.1_ubuntu24.04_py3.12_pytorch_release_2.9.1
+FROM rocm/pytorch:rocm7.1.1_ubuntu22.04_py3.10_pytorch_release_2.9.1
 
 ARG HSA_OVERRIDE_GFX_VERSION=11.5.1
 
@@ -14,27 +14,13 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade build tools for Python 3.12 compatibility
-RUN pip3 install --no-cache-dir --upgrade \
-    pip \
-    setuptools \
-    wheel
-
-# Pre-install numpy with Python 3.12 compatible version
-# This will be used even if chatterbox requests an older version
-RUN pip3 install --no-cache-dir "numpy>=1.26.0"
-
-# Install Wyoming protocol
-RUN pip3 install --no-cache-dir wyoming
-
-# Install Chatterbox TTS
-# Allow it to install its dependencies, but numpy 1.26 should already be satisfied
+# Install Python dependencies
 RUN pip3 install --no-cache-dir \
-    git+https://github.com/resemble-ai/chatterbox.git || \
-    echo "Warning: Chatterbox installation may have warnings, checking if it works..."
+    wyoming
 
-# Verify chatterbox can be imported
-RUN python3 -c "from chatterbox.tts_turbo import ChatterboxTurboTTS; print('Chatterbox import successful')"
+# Install Chatterbox TTS with all dependencies
+RUN pip3 install --no-cache-dir \
+    git+https://github.com/resemble-ai/chatterbox.git
 
 # Create app directory
 WORKDIR /app
