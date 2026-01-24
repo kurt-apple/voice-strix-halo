@@ -14,19 +14,33 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade build tools for Python 3.12 compatibility
+RUN pip3 install --no-cache-dir --upgrade \
+    pip \
+    setuptools \
+    wheel
+
+# Install numpy first with compatible version for Python 3.12
+RUN pip3 install --no-cache-dir "numpy>=1.26.0"
+
 # Install Python dependencies
 RUN pip3 install --no-cache-dir \
     transformers \
     accelerate \
-    numpy \
     scipy \
     soundfile \
     librosa \
     wyoming
 
-# Install Chatterbox TTS
-# Using the Turbo model from Resemble AI
+# Install Chatterbox TTS dependencies manually to avoid numpy version conflict
 RUN pip3 install --no-cache-dir \
+    torch \
+    torchaudio \
+    einops \
+    vocos
+
+# Install Chatterbox TTS (will use already installed numpy)
+RUN pip3 install --no-cache-dir --no-deps \
     git+https://github.com/resemble-ai/chatterbox.git
 
 # Create app directory
