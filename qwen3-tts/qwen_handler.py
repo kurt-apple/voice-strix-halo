@@ -52,13 +52,13 @@ def get_model(
             # Prepare kwargs for from_pretrained
             model_kwargs = {
                 "device_map": device,
-                "torch_dtype": torch_dtype,
+                "dtype": torch_dtype,
             }
 
             # Add flash attention if requested and dtype is compatible
-            if flash_attention and torch_dtype in (torch.bfloat16, torch.float16):
-                model_kwargs["attn_implementation"] = "flash_attention_2"
-                _LOGGER.info("Attempting to use flash_attention_2")
+            # if flash_attention and torch_dtype in (torch.bfloat16, torch.float16):
+                # model_kwargs["attn_implementation"] = "flash_attention_2"
+                # _LOGGER.info("Attempting to use flash_attention_2")
 
             # Add cache directory if specified
             if cache_dir:
