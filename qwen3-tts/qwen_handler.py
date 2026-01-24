@@ -213,6 +213,7 @@ class QwenEventHandler(AsyncEventHandler):
         flash_attention: bool,
         samples_per_chunk: int,
         cache_dir: Optional[str] = None,
+        speaker: Optional[str] = None,
     ) -> None:
         """Initialize handler."""
         super().__init__(reader, writer)
@@ -226,7 +227,12 @@ class QwenEventHandler(AsyncEventHandler):
         self.flash_attention = flash_attention
         self.samples_per_chunk = samples_per_chunk
         self.cache_dir = cache_dir
+        self.speaker = speaker
         self.model: Optional[Qwen3TTSModel] = None
+
+        # Detect model type from name
+        self.is_custom_voice = "CustomVoice" in model_name
+        self.is_voice_design = "VoiceDesign" in model_name
 
     async def handle_event(self, event: Event) -> bool:
         """Handle a Wyoming protocol event."""
@@ -250,14 +256,36 @@ class QwenEventHandler(AsyncEventHandler):
                         self.cache_dir,
                     )
 
-                # Generate audio using VoiceDesign
-                _LOGGER.debug("Generating audio with voice_instruct: %s", self.voice_instruct)
+                # Generate audio using appropriate API
                 start_time = time.time()
-                result = self.model.generate_voice_design(
-                    text=synthesize.text,
-                    language=self.language,
-                    instruct=self.voice_instruct,
-                )
+
+                if self.is_custom_voice:
+                    # CustomVoice model: use predefined speakers
+                    _LOGGER.debug("Generating audio with speaker: %s, instruct: %s",
+                                 self.speaker, self.voice_instruct)
+                    result = self.model.generate_custom_voice(
+                        text=synthesize.text,
+                        language=self.language,
+                        speaker=self.speaker or "Ryan",  # Default to Ryan if not specified
+                        instruct=self.voice_instruct if self.voice_instruct else "",
+                    )
+                elif self.is_voice_design:
+                    # VoiceDesign model: use text descriptions
+                    _LOGGER.debug("Generating audio with voice_instruct: %s", self.voice_instruct)
+                    result = self.model.generate_voice_design(
+                        text=synthesize.text,
+                        language=self.language,
+                        instruct=self.voice_instruct,
+                    )
+                else:
+                    # Base model or unknown - try VoiceDesign as fallback
+                    _LOGGER.warning("Unknown model type, trying VoiceDesign API")
+                    result = self.model.generate_voice_design(
+                        text=synthesize.text,
+                        language=self.language,
+                        instruct=self.voice_instruct,
+                    )
+
                 generation_time = time.time() - start_time
                 _LOGGER.info("Audio generation took %.2f seconds", generation_time)
 
