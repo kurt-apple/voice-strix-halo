@@ -93,20 +93,10 @@ def get_model(
                 model_kwargs["dtype"] = torch_dtype
                 _LOGGER.info("Using dtype: %s", dtype)
 
-            # Try flash_attention_2 if requested and available (uses CK backend on AMD)
-            # Otherwise fall back to SDPA (PyTorch's built-in optimized attention)
-            if flash_attention:
-                try:
-                    # Check if flash-attn is installed
-                    import flash_attn
-                    model_kwargs["attn_implementation"] = "flash_attention_2"
-                    _LOGGER.info("Using Flash Attention 2 (Composable Kernel backend for AMD)")
-                except ImportError:
-                    model_kwargs["attn_implementation"] = "sdpa"
-                    _LOGGER.info("Flash Attention not available, using SDPA (PyTorch scaled dot product attention)")
-            else:
-                model_kwargs["attn_implementation"] = "sdpa"
-                _LOGGER.info("Using SDPA (PyTorch scaled dot product attention)")
+            # Use SDPA (Scaled Dot Product Attention) - PyTorch's built-in optimized attention
+            # Flash Attention 2 doesn't compile successfully for RDNA GPUs
+            model_kwargs["attn_implementation"] = "sdpa"
+            _LOGGER.info("Using SDPA (PyTorch scaled dot product attention)")
 
             # Add cache directory if specified
             if cache_dir:
