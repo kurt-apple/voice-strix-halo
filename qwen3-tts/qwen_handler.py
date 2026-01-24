@@ -55,10 +55,11 @@ def get_model(
                 "dtype": torch_dtype,
             }
 
-            # Add flash attention if requested and dtype is compatible
-            if flash_attention and torch_dtype in (torch.bfloat16, torch.float16):
-                model_kwargs["attn_implementation"] = "flash_attention_2"
-                _LOGGER.info("Attempting to use flash_attention_2")
+            # Use SDPA (Scaled Dot Product Attention) instead of flash_attention_2
+            # SDPA is PyTorch's built-in optimized attention and doesn't require flash-attn package
+            # Flash-attn requires NVIDIA CUDA or specific AMD MI-series GPUs and is not available for RDNA
+            model_kwargs["attn_implementation"] = "sdpa"
+            _LOGGER.info("Using SDPA (PyTorch scaled dot product attention)")
 
             # Add cache directory if specified
             if cache_dir:
