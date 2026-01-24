@@ -29,6 +29,7 @@ RUN pip3 install --no-cache-dir \
     numpy \
     scipy \
     packaging \
+    onnxruntime-rocm \
     ninja
 
 # Attempt to install flash-attention for ROCm (non-fatal if fails)

@@ -2,11 +2,13 @@
 
 import io
 import logging
+import os
 import wave
 from typing import Optional
 
 import numpy as np
 import torch
+from huggingface_hub import snapshot_download
 from qwen_tts import Qwen3TTSModel
 from wyoming.audio import AudioChunk, AudioStart, AudioStop
 from wyoming.event import Event
@@ -64,6 +66,21 @@ def get_model(
             # Add cache directory if specified
             if cache_dir:
                 model_kwargs["cache_dir"] = cache_dir
+
+            # Pre-download speech_tokenizer files to ensure preprocessor_config.json is available
+            # This fixes an issue where the preprocessor_config.json file wasn't being downloaded
+            # Reference: https://github.com/vllm-project/vllm-omni/pull/903
+            if not os.path.isdir(model_name):
+                _LOGGER.info("Pre-downloading speech_tokenizer files for %s", model_name)
+                try:
+                    snapshot_download(
+                        repo_id=model_name,
+                        cache_dir=cache_dir,
+                        allow_patterns=["speech_tokenizer/*"],
+                    )
+                    _LOGGER.info("Speech tokenizer files downloaded successfully")
+                except Exception as e:
+                    _LOGGER.warning("Failed to pre-download speech_tokenizer: %s (will attempt normal load)", e)
 
             try:
                 _model_cache = Qwen3TTSModel.from_pretrained(
