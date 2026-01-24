@@ -14,9 +14,11 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Reinstall torchvision to fix compatibility issues with transformers
+# Install version-matched PyTorch and torchvision from AMD ROCm repository
+# This fixes the "operator torchvision::nms does not exist" error
 RUN pip3 install --no-cache-dir --force-reinstall \
-    torchvision
+    --index-url https://repo.radeon.com/rocm/manylinux/rocm-rel-7.1/ \
+    torch torchvision
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir \
