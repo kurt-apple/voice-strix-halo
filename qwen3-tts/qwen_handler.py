@@ -3,6 +3,7 @@
 import io
 import logging
 import os
+import time
 import wave
 from typing import Optional
 
@@ -156,6 +157,15 @@ def get_model(
                     **model_kwargs
                 )
                 _LOGGER.info("Model loaded successfully")
+
+                # Compile model for faster inference (PyTorch 2.x optimization)
+                try:
+                    _LOGGER.info("Compiling model with torch.compile for optimized inference...")
+                    _model_cache = torch.compile(_model_cache, mode="reduce-overhead")
+                    _LOGGER.info("Model compilation successful")
+                except Exception as e:
+                    _LOGGER.warning("Model compilation failed (will use uncompiled model): %s", e)
+
             except Exception as e:
                 _LOGGER.error("Failed to load model: %s", e)
                 raise
@@ -218,11 +228,14 @@ class QwenEventHandler(AsyncEventHandler):
 
                 # Generate audio using VoiceDesign
                 _LOGGER.debug("Generating audio with voice_instruct: %s", self.voice_instruct)
+                start_time = time.time()
                 result = self.model.generate_voice_design(
                     text=synthesize.text,
                     language=self.language,
                     instruct=self.voice_instruct,
                 )
+                generation_time = time.time() - start_time
+                _LOGGER.info("Audio generation took %.2f seconds", generation_time)
 
                 # Handle tuple/list return (audio, sample_rate) or just audio
                 if isinstance(result, (tuple, list)):
