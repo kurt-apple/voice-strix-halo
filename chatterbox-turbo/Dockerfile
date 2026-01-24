@@ -20,30 +20,21 @@ RUN pip3 install --no-cache-dir --upgrade \
     setuptools \
     wheel
 
-# Install numpy first with compatible version for Python 3.12
+# Pre-install numpy with Python 3.12 compatible version
+# This will be used even if chatterbox requests an older version
 RUN pip3 install --no-cache-dir "numpy>=1.26.0"
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir \
-    transformers \
-    accelerate \
-    scipy \
-    soundfile \
-    librosa \
-    wyoming
+# Install Wyoming protocol
+RUN pip3 install --no-cache-dir wyoming
 
-# Install Chatterbox TTS dependencies manually to avoid numpy version conflict
+# Install Chatterbox TTS
+# Allow it to install its dependencies, but numpy 1.26 should already be satisfied
 RUN pip3 install --no-cache-dir \
-    torch \
-    torchaudio \
-    einops \
-    vocos \
-    perth \
-    packaging
+    git+https://github.com/resemble-ai/chatterbox.git || \
+    echo "Warning: Chatterbox installation may have warnings, checking if it works..."
 
-# Install Chatterbox TTS (will use already installed numpy and dependencies)
-RUN pip3 install --no-cache-dir --no-deps \
-    git+https://github.com/resemble-ai/chatterbox.git
+# Verify chatterbox can be imported
+RUN python3 -c "from chatterbox.tts_turbo import ChatterboxTurboTTS; print('Chatterbox import successful')"
 
 # Create app directory
 WORKDIR /app
