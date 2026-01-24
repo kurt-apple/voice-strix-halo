@@ -37,11 +37,8 @@ RUN pip3 install --no-cache-dir \
     wyoming \
     onnxruntime-rocm
 
-# Attempt to install Flash Attention 2 with Composable Kernel (CK) backend for AMD GPUs
-# CK is AMD's optimized kernel library and may work on RDNA where Triton doesn't
-# Reference: https://rocm.docs.amd.com/en/latest/how-to/rocm-for-ai/inference-optimization/model-acceleration-libraries.html
-RUN pip3 install --no-cache-dir flash-attn --no-build-isolation || \
-    echo "Flash Attention 2 installation failed - will fall back to SDPA"
+# Note: Flash Attention 2 with CK backend doesn't successfully compile for RDNA GPUs
+# Using SDPA (PyTorch's built-in scaled dot product attention) instead
 
 # Create app directory
 WORKDIR /app
