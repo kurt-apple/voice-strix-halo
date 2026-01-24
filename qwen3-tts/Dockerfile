@@ -18,9 +18,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
+# Install qwen-tts first with -U to get latest version (critical for compatibility)
+RUN pip3 install --no-cache-dir -U qwen-tts
+
+# Install remaining dependencies
 RUN pip3 install --no-cache-dir \
     wyoming \
-    qwen-tts \
     transformers \
     accelerate \
     numpy \
