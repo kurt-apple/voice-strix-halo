@@ -14,11 +14,14 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install version-matched PyTorch and torchvision from AMD ROCm repository
+# Install version-matched PyTorch and torchvision from AMD ROCm 7.1.1 repository
 # This fixes the "operator torchvision::nms does not exist" error
-RUN pip3 install --no-cache-dir --force-reinstall \
-    --index-url https://repo.radeon.com/rocm/manylinux/rocm-rel-7.1/ \
-    torch torchvision
+RUN wget https://repo.radeon.com/rocm/manylinux/rocm-rel-7.1.1/torch-2.9.1+rocm7.1.1.lw.git351ff442-cp310-cp310-linux_x86_64.whl && \
+    wget https://repo.radeon.com/rocm/manylinux/rocm-rel-7.1.1/torchvision-0.24.0+rocm7.1.1.gitb919bd0c-cp310-cp310-linux_x86_64.whl && \
+    pip3 install --no-cache-dir --force-reinstall \
+        torch-2.9.1+rocm7.1.1.lw.git351ff442-cp310-cp310-linux_x86_64.whl \
+        torchvision-0.24.0+rocm7.1.1.gitb919bd0c-cp310-cp310-linux_x86_64.whl && \
+    rm *.whl
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir \
