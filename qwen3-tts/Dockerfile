@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 # Pin transformers version to match model requirements (from preprocessor_config.json)
 RUN pip3 install --no-cache-dir \
-    "transformers>=4.57.0" \
+    "transformers>=4.57.6" \
     accelerate \
     numpy \
     scipy \
@@ -36,22 +36,11 @@ RUN pip3 install --no-cache-dir \
     wyoming \
     onnxruntime-rocm
 
-# Attempt to install flash-attention for ROCm (non-fatal if fails)
-# Note: ROCm flash-attention supports MI200x, MI250x, MI300x, MI355x GPUs (CDNA architecture)
-# RDNA GPUs (like Radeon 8060S) may not be fully supported - standard attention will be used as fallback
-# Compilation can take 5-10 minutes and requires significant build resources
-RUN echo "========================================" && \
-    echo "Attempting to install flash-attn for ROCm..." && \
-    echo "Supported GPUs: MI200x, MI250x, MI300x, MI355x" && \
-    echo "RDNA GPUs will fall back to standard attention" && \
-    echo "========================================" && \
-    MAX_JOBS=4 pip3 install --no-cache-dir flash-attn --no-build-isolation 2>&1 | tee /tmp/flash-attn-install.log || \
-    (echo "========================================" && \
-     echo "Flash attention installation failed" && \
-     echo "This is expected for RDNA GPUs - standard attention will be used" && \
-     echo "Build log saved to /tmp/flash-attn-install.log" && \
-     echo "========================================") && \
-    (pip3 show flash-attn >/dev/null 2>&1 && echo "✓ flash-attn successfully installed" || echo "✗ flash-attn not available - using standard PyTorch attention")
+# Note: flash-attn is not installed as it requires custom-built PyTorch with aotriton patches for Strix Halo
+# Official ROCm PyTorch builds don't support flash-attn on gfx1151 (Radeon 8060S) yet
+# Using SDPA (Scaled Dot Product Attention) instead - PyTorch's built-in optimized attention
+# SDPA provides good performance without requiring custom builds
+# For flash-attn on Strix Halo, see: https://github.com/lhl/strix-halo-testing
 
 # Create app directory
 WORKDIR /app
