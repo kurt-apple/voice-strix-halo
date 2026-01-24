@@ -81,6 +81,25 @@ async def main() -> None:
     _LOGGER.info("Voice instruction: %s", args.instruct)
     _LOGGER.info("Language: %s", args.language)
 
+    # Map Qwen language names to ISO language codes for Home Assistant
+    language_map = {
+        "auto": ["en", "zh", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"],
+        "chinese": ["zh"],
+        "english": ["en"],
+        "japanese": ["ja"],
+        "korean": ["ko"],
+        "german": ["de"],
+        "french": ["fr"],
+        "russian": ["ru"],
+        "portuguese": ["pt"],
+        "spanish": ["es"],
+        "italian": ["it"],
+    }
+
+    # Get language codes for Home Assistant
+    ha_languages = language_map.get(args.language.lower(), ["en"])
+    _LOGGER.info("Home Assistant language codes: %s", ha_languages)
+
     # Construct Wyoming protocol info
     wyoming_info = Info(
         tts=[
@@ -103,7 +122,7 @@ async def main() -> None:
                         ),
                         installed=True,
                         version="1.7.0",
-                        languages=[args.language.lower()],
+                        languages=ha_languages,
                     )
                 ],
             )
