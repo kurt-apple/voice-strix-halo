@@ -1,4 +1,4 @@
-FROM rocm/pytorch:rocm7.1.1_ubuntu24.04_py3.12_pytorch_release_2.9.1
+FROM rocm/pytorch:rocm7.2_ubuntu24.04_py3.12_pytorch_release_2.9.1
 
 ARG HSA_OVERRIDE_GFX_VERSION=11.5.1
 
@@ -37,11 +37,11 @@ RUN pip3 install --no-cache-dir \
     wyoming \
     onnxruntime-rocm
 
-# Note: flash-attn is not installed as it requires custom-built PyTorch with aotriton patches for Strix Halo
-# Official ROCm PyTorch builds don't support flash-attn on gfx1151 (Radeon 8060S) yet
-# Using SDPA (Scaled Dot Product Attention) instead - PyTorch's built-in optimized attention
-# SDPA provides good performance without requiring custom builds
-# For flash-attn on Strix Halo, see: https://github.com/lhl/strix-halo-testing
+# Attempt to install Flash Attention 2 with Composable Kernel (CK) backend for AMD GPUs
+# CK is AMD's optimized kernel library and may work on RDNA where Triton doesn't
+# Reference: https://rocm.docs.amd.com/en/latest/how-to/rocm-for-ai/inference-optimization/model-acceleration-libraries.html
+RUN pip3 install --no-cache-dir flash-attn --no-build-isolation || \
+    echo "Flash Attention 2 installation failed - will fall back to SDPA"
 
 # Create app directory
 WORKDIR /app
