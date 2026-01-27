@@ -122,7 +122,11 @@ CPU-only, ultra-low latency (~200ms to first audio chunk).
 - Simple: `af_bella+af_sky` (equal mix)
 - Weighted: `af_bella(2)+af_sky(1)` (2:1 ratio)
 
-**Note:** Kokoro TTS is a lightweight proxy service that requires no local GPU. It forwards requests to an external Kokoro-FastAPI instance. Voice changes require container restart.
+**Features:**
+- Streaming audio responses for low latency
+- Multi-language support (en, ja, zh, ko, fr, es)
+- No local GPU required - lightweight proxy service
+- Voice changes require container restart
 
 ## Home Assistant Integration
 
