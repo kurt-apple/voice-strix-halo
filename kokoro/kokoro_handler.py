@@ -58,7 +58,7 @@ class KokoroEventHandler(AsyncEventHandler):
                     "stream": True,  # Enable streaming
                 }
 
-                _LOGGER.debug("Calling Kokoro API (streaming): %s", endpoint)
+                _LOGGER.info("Calling Kokoro API (streaming): %s", endpoint)
                 start_time = time.time()
                 first_chunk_time = None
                 total_samples = 0
