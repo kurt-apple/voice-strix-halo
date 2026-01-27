@@ -299,3 +299,36 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  wyoming-kokoro-tts:
+    build:
+      context: ./kokoro
+      dockerfile: Dockerfile
+    container_name: wyoming-kokoro-tts-rocm
+    restart: unless-stopped
+
+    # No GPU devices - proxies to external API
+
+    # Environment variables
+    environment:
+      - KOKORO_API_URL=${KOKORO_API_URL:-http://10.0.3.23:8880/v1}
+      - KOKORO_VOICE=${KOKORO_VOICE:-af_bella}
+      - KOKORO_SPEED=${KOKORO_SPEED:-1.0}
+      - KOKORO_TIMEOUT=${KOKORO_TIMEOUT:-30}
+      - KOKORO_DEBUG=${KOKORO_DEBUG:-false}
+
+    # Port for Wyoming protocol (using 10203 to avoid conflicts)
+    ports:
+      - "10203:10203"
+
+    # Volume for potential caching needs
+    volumes:
+      - ./kokoro-data:/data
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.connect(('localhost',10203)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
