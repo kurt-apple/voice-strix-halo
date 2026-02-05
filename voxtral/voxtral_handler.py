@@ -52,13 +52,14 @@ def get_vllm_model(model_name: str, gpu_memory_utilization: float = 0.9):
 
                 # Initialize vLLM with Voxtral model
                 # Temperature should always be 0.0 for Voxtral as per documentation
+                # Note: vLLM auto-detects device from environment (CUDA_VISIBLE_DEVICES, etc.)
+                # Max model length: 1 token = 80ms, so 8192 tokens = ~655 seconds (~10.9 minutes)
                 _llm_cache = LLM(
                     model=model_name,
                     gpu_memory_utilization=gpu_memory_utilization,
                     trust_remote_code=True,
-                    max_model_len=131072,  # Default ~3 hours of audio
+                    max_model_len=8192,  # ~10 minutes of audio (8192 * 80ms = 655 seconds)
                     dtype="bfloat16",
-                    device=device_type,
                 )
                 _LOGGER.info("vLLM model loaded successfully")
             except Exception as e:
