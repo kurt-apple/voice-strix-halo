@@ -8,10 +8,10 @@ from typing import Optional
 import asyncio
 
 import numpy as np
+from wyoming.asr import Transcribe, Transcript
 from wyoming.audio import AudioChunk, AudioStop
 from wyoming.event import Event
 from wyoming.info import Describe, Info
-from wyoming.stt import Transcribe, Transcript
 from wyoming.server import AsyncEventHandler
 
 _LOGGER = logging.getLogger(__name__)
