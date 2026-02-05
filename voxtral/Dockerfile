@@ -23,6 +23,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv for faster package installation
 RUN pip3 install --no-cache-dir uv
 
+# Install Triton for ROCm
+RUN uv pip install --no-cache-dir \
+    triton==3.4.0 \
+    --extra-index-url https://wheels.vllm.ai/rocm/triton/
+
 # Install vLLM 0.15.1 with ROCm 7.0 wheel (compatible with ROCm 7.1.1)
 RUN uv pip install --no-cache-dir \
     vllm==0.15.1 \

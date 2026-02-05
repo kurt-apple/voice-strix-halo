@@ -14,6 +14,7 @@ os.environ.setdefault("VLLM_USE_RAY_COMPILED_DAG", "0")
 os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
 # Use CK flash attention instead of Triton (Triton not fully supported on ROCm for Voxtral)
 os.environ.setdefault("VLLM_USE_TRITON_FLASH_ATTN", "0")
+os.environ.setdefault("VLLM_ATTENTION_BACKEND", "XFORMERS")
 # Prevent Ray from modifying ROCm device visibility
 os.environ.setdefault("RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES", "1")
 os.environ.setdefault("RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES", "1")
