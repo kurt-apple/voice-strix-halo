@@ -1,33 +1,20 @@
-FROM rocm/pytorch:rocm7.1.1_ubuntu24.04_py3.12_pytorch_release_2.9.1
+FROM vllm/vllm-openai-rocm:latest
 
 ARG HSA_OVERRIDE_GFX_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION} \
-    ROCM_PATH=/opt/rocm \
-    HIP_VISIBLE_DEVICES=0 \
-    LD_LIBRARY_PATH=/usr/local/lib:/opt/rocm/lib:/opt/rocm/lib/llvm/lib \
     PYTORCH_ROCM_ARCH="gfx90a;gfx942;gfx1100;gfx1151"
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    wget \
-    build-essential \
     libsndfile1 \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pip and base packages
-RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
-
-# Install vLLM nightly with audio support
-RUN pip3 install --no-cache-dir \
-    vllm \
-    --extra-index-url https://wheels.vllm.ai/nightly
-
 # Install audio processing and Wyoming dependencies
+# vLLM is already installed in the base image
 RUN pip3 install --no-cache-dir \
     mistral_common>=1.9.0 \
     soxr \
