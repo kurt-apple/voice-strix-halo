@@ -19,9 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
+# Install pip and base packages
+RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
+
 # Install vLLM nightly with audio support
-RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip3 install --no-cache-dir \
+RUN pip3 install --no-cache-dir \
     vllm \
     --extra-index-url https://wheels.vllm.ai/nightly
 
@@ -32,6 +34,10 @@ RUN pip3 install --no-cache-dir \
     librosa \
     soundfile \
     wyoming
+
+# Remove torchvision to avoid ROCm operator registration issues
+# vLLM/transformers pull it in but Voxtral doesn't need vision capabilities
+RUN pip3 uninstall -y torchvision || true
 
 # Create app directory
 WORKDIR /app
