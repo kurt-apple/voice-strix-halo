@@ -2,10 +2,15 @@
 
 import io
 import logging
+import os
 import time
 import wave
 from typing import Optional
 import asyncio
+
+# Set vLLM environment variables BEFORE any vLLM imports
+os.environ.setdefault("VLLM_USE_RAY_COMPILED_DAG", "0")
+os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
 
 import numpy as np
 from wyoming.asr import Transcribe, Transcript
@@ -34,21 +39,23 @@ def get_vllm_model(model_name: str, gpu_memory_utilization: float = 0.9):
         if _llm_cache is None:
             _LOGGER.info("Loading Voxtral model via vLLM: %s", model_name)
             try:
-                import os
                 import torch
-                from vllm import LLM
 
                 # Ensure ROCm/CUDA detection works
-                device_type = "cuda"  # ROCm uses "cuda" device type in PyTorch
                 if not torch.cuda.is_available():
                     _LOGGER.error("CUDA/ROCm not available!")
                     raise RuntimeError("No GPU detected - CUDA/ROCm not available")
 
-                _LOGGER.info("Using device type: %s", device_type)
+                _LOGGER.info("Torch CUDA available: %s", torch.cuda.is_available())
                 _LOGGER.info("GPU count: %d", torch.cuda.device_count())
+                _LOGGER.info("Torch version: %s", torch.__version__)
 
-                # Set environment variable to help vLLM detect ROCm
-                os.environ.setdefault("VLLM_USE_RAY_COMPILED_DAG", "0")
+                # Check for ROCm
+                if hasattr(torch.version, 'hip'):
+                    _LOGGER.info("ROCm/HIP version: %s", torch.version.hip)
+
+                # Import vLLM after environment is set
+                from vllm import LLM
 
                 # Initialize vLLM with Voxtral model
                 # Temperature should always be 0.0 for Voxtral as per documentation
@@ -60,6 +67,7 @@ def get_vllm_model(model_name: str, gpu_memory_utilization: float = 0.9):
                     trust_remote_code=True,
                     max_model_len=8192,  # ~10 minutes of audio (8192 * 80ms = 655 seconds)
                     dtype="bfloat16",
+                    tensor_parallel_size=1,
                 )
                 _LOGGER.info("vLLM model loaded successfully")
             except Exception as e:
