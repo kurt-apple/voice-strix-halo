@@ -5,7 +5,7 @@ import asyncio
 import logging
 from functools import partial
 
-from wyoming.info import Attribution, Info, SttProgram, SttModel
+from wyoming.info import Attribution, Info, AsrProgram, AsrModel
 from wyoming.server import AsyncServer
 
 from voxtral_handler import VoxtralEventHandler
@@ -55,8 +55,8 @@ async def main() -> None:
 
     # Create Wyoming info
     wyoming_info = Info(
-        stt=[
-            SttProgram(
+        asr=[
+            AsrProgram(
                 name="voxtral",
                 description="Mistral Voxtral Mini 4B Realtime STT",
                 attribution=Attribution(
@@ -65,7 +65,7 @@ async def main() -> None:
                 ),
                 installed=True,
                 models=[
-                    SttModel(
+                    AsrModel(
                         name=args.model,
                         description="Voxtral Mini 4B - Real-time streaming ASR with <500ms latency",
                         attribution=Attribution(
