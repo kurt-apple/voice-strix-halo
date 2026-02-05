@@ -1,4 +1,4 @@
-FROM rocm/vllm-dev:latest
+FROM rocm/vllm-dev:nightly
 
 ARG HSA_OVERRIDE_GFX_VERSION
 
