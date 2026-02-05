@@ -364,11 +364,15 @@ services:
       - LD_LIBRARY_PATH=/usr/local/lib:/opt/rocm/lib:/opt/rocm/lib/llvm/lib
       # ROCm/CUDA environment (ROCm uses CUDA API compatibility)
       - CUDA_VISIBLE_DEVICES=0
+      - ROCR_VISIBLE_DEVICES=0
       - GPU_DEVICE_ORDINAL=0
       # vLLM configuration
       - VLLM_DISABLE_COMPILE_CACHE=1
       - VLLM_USE_RAY_COMPILED_DAG=0
       - VLLM_WORKER_MULTIPROC_METHOD=spawn
+      # Prevent Ray from interfering with ROCm device visibility
+      - RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
+      - RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES=1
       # Hugging Face cache configuration
       - HF_HOME=/data/hf_cache
       - TRANSFORMERS_CACHE=/data/hf_cache

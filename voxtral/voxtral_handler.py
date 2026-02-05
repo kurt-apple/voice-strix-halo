@@ -9,8 +9,15 @@ from typing import Optional
 import asyncio
 
 # Set vLLM environment variables BEFORE any vLLM imports
+# Disable Ray to avoid ROCm/HIP device conflicts
 os.environ.setdefault("VLLM_USE_RAY_COMPILED_DAG", "0")
 os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+# Prevent Ray from modifying ROCm device visibility
+os.environ.setdefault("RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES", "1")
+os.environ.setdefault("RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES", "1")
+# Ensure ROCm device visibility is set
+os.environ.setdefault("ROCR_VISIBLE_DEVICES", "0")
+os.environ.setdefault("HIP_VISIBLE_DEVICES", "0")
 
 import numpy as np
 from wyoming.asr import Transcribe, Transcript
