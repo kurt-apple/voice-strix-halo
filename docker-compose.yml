@@ -362,8 +362,13 @@ services:
       - ROCM_VERSION=7.1.1
       - ROCM_PATH=/opt/rocm
       - LD_LIBRARY_PATH=/usr/local/lib:/opt/rocm/lib:/opt/rocm/lib/llvm/lib
-      # vLLM optimizations
+      # ROCm/CUDA environment (ROCm uses CUDA API compatibility)
+      - CUDA_VISIBLE_DEVICES=0
+      - GPU_DEVICE_ORDINAL=0
+      # vLLM configuration
       - VLLM_DISABLE_COMPILE_CACHE=1
+      - VLLM_USE_RAY_COMPILED_DAG=0
+      - VLLM_WORKER_MULTIPROC_METHOD=spawn
       # Hugging Face cache configuration
       - HF_HOME=/data/hf_cache
       - TRANSFORMERS_CACHE=/data/hf_cache

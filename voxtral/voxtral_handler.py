@@ -34,7 +34,21 @@ def get_vllm_model(model_name: str, gpu_memory_utilization: float = 0.9):
         if _llm_cache is None:
             _LOGGER.info("Loading Voxtral model via vLLM: %s", model_name)
             try:
+                import os
+                import torch
                 from vllm import LLM
+
+                # Ensure ROCm/CUDA detection works
+                device_type = "cuda"  # ROCm uses "cuda" device type in PyTorch
+                if not torch.cuda.is_available():
+                    _LOGGER.error("CUDA/ROCm not available!")
+                    raise RuntimeError("No GPU detected - CUDA/ROCm not available")
+
+                _LOGGER.info("Using device type: %s", device_type)
+                _LOGGER.info("GPU count: %d", torch.cuda.device_count())
+
+                # Set environment variable to help vLLM detect ROCm
+                os.environ.setdefault("VLLM_USE_RAY_COMPILED_DAG", "0")
 
                 # Initialize vLLM with Voxtral model
                 # Temperature should always be 0.0 for Voxtral as per documentation
@@ -44,6 +58,7 @@ def get_vllm_model(model_name: str, gpu_memory_utilization: float = 0.9):
                     trust_remote_code=True,
                     max_model_len=131072,  # Default ~3 hours of audio
                     dtype="bfloat16",
+                    device=device_type,
                 )
                 _LOGGER.info("vLLM model loaded successfully")
             except Exception as e:

@@ -9,6 +9,7 @@ kokoro-data/
 qwen-data/
 tts-data/
 pocket-data/
+voxtral-data/
 
 # Docker
 docker-compose.override.yml
