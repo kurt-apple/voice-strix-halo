@@ -331,3 +331,61 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  wyoming-voxtral:
+    build:
+      context: ./voxtral
+      dockerfile: Dockerfile
+      args:
+        HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-11.5.1}
+    container_name: wyoming-voxtral-rocm
+    restart: unless-stopped
+
+    # GPU device access - required for vLLM with ROCm
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+
+    # Security options for GPU access
+    security_opt:
+      - seccomp:unconfined
+
+    # Group access for GPU
+    group_add:
+      - video
+      - render
+
+    # Environment variables
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.5.1}
+      - HIP_VISIBLE_DEVICES=0
+      - ROCM_VERSION=7.1.1
+      - ROCM_PATH=/opt/rocm
+      - LD_LIBRARY_PATH=/usr/local/lib:/opt/rocm/lib:/opt/rocm/lib/llvm/lib
+      # vLLM optimizations
+      - VLLM_DISABLE_COMPILE_CACHE=1
+      # Hugging Face cache configuration
+      - HF_HOME=/data/hf_cache
+      - TRANSFORMERS_CACHE=/data/hf_cache
+      - HUGGINGFACE_HUB_CACHE=/data/hf_cache/hub
+      # Voxtral configuration
+      - VOXTRAL_MODEL=${VOXTRAL_MODEL:-mistralai/Voxtral-Mini-4B-Realtime-2602}
+      - VOXTRAL_LANGUAGE=${VOXTRAL_LANGUAGE:-en}
+      - VOXTRAL_GPU_MEMORY=${VOXTRAL_GPU_MEMORY:-0.9}
+      - VOXTRAL_DEBUG=${VOXTRAL_DEBUG:-false}
+
+    # Port for Wyoming protocol (using 10301 for STT)
+    ports:
+      - "10301:10301"
+
+    # Volume for model persistence
+    volumes:
+      - ./voxtral-data:/data
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import socket; s=socket.socket(); s.connect(('localhost',10301)); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s  # vLLM model loading can take time
