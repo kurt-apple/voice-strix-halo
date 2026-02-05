@@ -76,12 +76,26 @@ def get_model(
             # Handle quantization and dtype
             if dtype.lower() in ["int8", "8bit"]:
                 # 8-bit quantization using BitsAndBytes
-                model_kwargs["load_in_8bit"] = True
-                _LOGGER.info("Using 8-bit quantization")
+                try:
+                    import bitsandbytes
+                    model_kwargs["load_in_8bit"] = True
+                    _LOGGER.info("Using 8-bit quantization (bitsandbytes available)")
+                except ImportError:
+                    _LOGGER.error("BitsAndBytes not installed! Cannot use int8. Install with: pip install bitsandbytes")
+                    # Fall back to bfloat16
+                    model_kwargs["dtype"] = torch.bfloat16
+                    _LOGGER.info("Falling back to bfloat16")
             elif dtype.lower() in ["int4", "4bit"]:
                 # 4-bit quantization using BitsAndBytes
-                model_kwargs["load_in_4bit"] = True
-                _LOGGER.info("Using 4-bit quantization")
+                try:
+                    import bitsandbytes
+                    model_kwargs["load_in_4bit"] = True
+                    _LOGGER.info("Using 4-bit quantization (bitsandbytes available)")
+                except ImportError:
+                    _LOGGER.error("BitsAndBytes not installed! Cannot use int4. Install with: pip install bitsandbytes")
+                    # Fall back to bfloat16
+                    model_kwargs["dtype"] = torch.bfloat16
+                    _LOGGER.info("Falling back to bfloat16")
             else:
                 # Standard dtype
                 dtype_map = {
@@ -93,9 +107,8 @@ def get_model(
                 model_kwargs["dtype"] = torch_dtype
                 _LOGGER.info("Using dtype: %s", dtype)
 
-            # Use SDPA (Scaled Dot Product Attention) instead of flash_attention_2
-            # SDPA is PyTorch's built-in optimized attention and doesn't require flash-attn package
-            # Flash-attn requires NVIDIA CUDA or specific AMD MI-series GPUs and is not available for RDNA
+            # Use SDPA (Scaled Dot Product Attention) - PyTorch's built-in optimized attention
+            # Flash Attention 2 doesn't compile successfully for RDNA GPUs
             model_kwargs["attn_implementation"] = "sdpa"
             _LOGGER.info("Using SDPA (PyTorch scaled dot product attention)")
 
@@ -163,19 +176,23 @@ def get_model(
                     _LOGGER.warning("Failed to fix directory structure: %s (will attempt normal load)", e)
 
             try:
+                _LOGGER.info("Calling Qwen3TTSModel.from_pretrained with kwargs: %s", model_kwargs)
                 _model_cache = Qwen3TTSModel.from_pretrained(
                     model_name,
                     **model_kwargs
                 )
                 _LOGGER.info("Model loaded successfully")
-
-                # Note: torch.compile doesn't work on Qwen3TTSModel class directly
-                # Would need to compile individual forward methods, but this adds complexity
-                # and may not provide significant speedup on this architecture
-
-            except Exception as e:
-                _LOGGER.error("Failed to load model: %s", e)
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower():
+                    _LOGGER.error("GPU out of memory! Try int8 quantization or smaller model")
                 raise
+            except Exception as e:
+                _LOGGER.error("Failed to load model: %s", e, exc_info=True)
+                raise
+
+            # Note: torch.compile doesn't work on Qwen3TTSModel class directly
+            # Would need to compile individual forward methods, but this adds complexity
+            # and may not provide significant speedup on this architecture
 
         return _model_cache
 
@@ -196,6 +213,7 @@ class QwenEventHandler(AsyncEventHandler):
         flash_attention: bool,
         samples_per_chunk: int,
         cache_dir: Optional[str] = None,
+        speaker: Optional[str] = None,
     ) -> None:
         """Initialize handler."""
         super().__init__(reader, writer)
@@ -209,7 +227,12 @@ class QwenEventHandler(AsyncEventHandler):
         self.flash_attention = flash_attention
         self.samples_per_chunk = samples_per_chunk
         self.cache_dir = cache_dir
+        self.speaker = speaker
         self.model: Optional[Qwen3TTSModel] = None
+
+        # Detect model type from name
+        self.is_custom_voice = "CustomVoice" in model_name
+        self.is_voice_design = "VoiceDesign" in model_name
 
     async def handle_event(self, event: Event) -> bool:
         """Handle a Wyoming protocol event."""
@@ -233,14 +256,36 @@ class QwenEventHandler(AsyncEventHandler):
                         self.cache_dir,
                     )
 
-                # Generate audio using VoiceDesign
-                _LOGGER.debug("Generating audio with voice_instruct: %s", self.voice_instruct)
+                # Generate audio using appropriate API
                 start_time = time.time()
-                result = self.model.generate_voice_design(
-                    text=synthesize.text,
-                    language=self.language,
-                    instruct=self.voice_instruct,
-                )
+
+                if self.is_custom_voice:
+                    # CustomVoice model: use predefined speakers
+                    _LOGGER.debug("Generating audio with speaker: %s, instruct: %s",
+                                 self.speaker, self.voice_instruct)
+                    result = self.model.generate_custom_voice(
+                        text=synthesize.text,
+                        language=self.language,
+                        speaker=self.speaker or "Ryan",  # Default to Ryan if not specified
+                        instruct=self.voice_instruct if self.voice_instruct else "",
+                    )
+                elif self.is_voice_design:
+                    # VoiceDesign model: use text descriptions
+                    _LOGGER.debug("Generating audio with voice_instruct: %s", self.voice_instruct)
+                    result = self.model.generate_voice_design(
+                        text=synthesize.text,
+                        language=self.language,
+                        instruct=self.voice_instruct,
+                    )
+                else:
+                    # Base model or unknown - try VoiceDesign as fallback
+                    _LOGGER.warning("Unknown model type, trying VoiceDesign API")
+                    result = self.model.generate_voice_design(
+                        text=synthesize.text,
+                        language=self.language,
+                        instruct=self.voice_instruct,
+                    )
+
                 generation_time = time.time() - start_time
                 _LOGGER.info("Audio generation took %.2f seconds", generation_time)
 

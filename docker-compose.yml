@@ -148,15 +148,14 @@ services:
       - MIOPEN_USER_DB_PATH=/tmp/miopen-cache
       - MIOPEN_CUSTOM_CACHE_DIR=/tmp/miopen-cache
       - MIOPEN_FIND_MODE=1
-      # PyTorch memory optimization
-      - PYTORCH_HIP_ALLOC_CONF=expandable_segments:True
       # Hugging Face cache configuration
       - HF_HOME=/data/hf_cache
       - TRANSFORMERS_CACHE=/data/hf_cache
       - HUGGINGFACE_HUB_CACHE=/data/hf_cache/hub
       # Qwen3-TTS configuration
-      - QWEN_MODEL=${QWEN_MODEL:-Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign}
-      - QWEN_VOICE_INSTRUCT=${QWEN_VOICE_INSTRUCT:-Clear, natural voice with medium pitch. Friendly British female personal assistant.}
+      - QWEN_MODEL=${QWEN_MODEL:-Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice}
+      - QWEN_VOICE_INSTRUCT=${QWEN_VOICE_INSTRUCT:-}
+      - QWEN_SPEAKER=${QWEN_SPEAKER:-Ryan}
       - QWEN_LANGUAGE=${QWEN_LANGUAGE:-Auto}
       - QWEN_DEVICE=${QWEN_DEVICE:-cuda:0}
       - QWEN_DTYPE=${QWEN_DTYPE:-bfloat16}

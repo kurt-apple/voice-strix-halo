@@ -37,11 +37,8 @@ RUN pip3 install --no-cache-dir \
     wyoming \
     onnxruntime-rocm
 
-# Note: flash-attn is not installed as it requires custom-built PyTorch with aotriton patches for Strix Halo
-# Official ROCm PyTorch builds don't support flash-attn on gfx1151 (Radeon 8060S) yet
-# Using SDPA (Scaled Dot Product Attention) instead - PyTorch's built-in optimized attention
-# SDPA provides good performance without requiring custom builds
-# For flash-attn on Strix Halo, see: https://github.com/lhl/strix-halo-testing
+# Note: Flash Attention 2 with CK backend doesn't successfully compile for RDNA GPUs
+# Using SDPA (PyTorch's built-in scaled dot product attention) instead
 
 # Create app directory
 WORKDIR /app

@@ -25,7 +25,12 @@ async def main() -> None:
     parser.add_argument(
         "--instruct",
         default="Clear, natural voice with medium pitch",
-        help="Voice design instruction",
+        help="Voice design instruction (for VoiceDesign models) or emotion modifier (for CustomVoice models)",
+    )
+    parser.add_argument(
+        "--speaker",
+        default="Ryan",
+        help="Speaker name for CustomVoice models (Ryan, Aiden, Vivian, Serena, etc.)",
     )
     parser.add_argument(
         "--language",
@@ -141,6 +146,7 @@ async def main() -> None:
         flash_attention=args.flash_attention,
         samples_per_chunk=args.samples_per_chunk,
         cache_dir=args.cache_dir,
+        speaker=args.speaker,
     )
 
     # Start server

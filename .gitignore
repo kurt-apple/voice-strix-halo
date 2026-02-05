@@ -4,6 +4,11 @@
 # Data directories
 data/
 piper-data/
+chatterbox-data/
+kokoro-data/
+qwen-data/
+tts-data/
+pocket-data/
 
 # Docker
 docker-compose.override.yml
@@ -18,3 +23,5 @@ docker-compose.override.yml
 # OS
 .DS_Store
 Thumbs.db
+
+
