@@ -1,11 +1,12 @@
-FROM vllm/vllm-openai-rocm:latest
+FROM rocm/vllm-dev:latest
 
 ARG HSA_OVERRIDE_GFX_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION} \
-    PYTORCH_ROCM_ARCH="gfx90a;gfx942;gfx1100;gfx1151"
+    PYTORCH_ROCM_ARCH="gfx90a;gfx942;gfx1100;gfx1151" \
+    VLLM_USE_TRITON_FLASH_ATTN=0
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
