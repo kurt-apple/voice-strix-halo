@@ -12,6 +12,9 @@ from voxtral_handler import VoxtralEventHandler
 
 _LOGGER = logging.getLogger(__name__)
 
+# Version
+__version__ = "1.0.0"
+
 
 async def main() -> None:
     """Main entry point."""
@@ -64,6 +67,7 @@ async def main() -> None:
                     url="https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602",
                 ),
                 installed=True,
+                version=__version__,
                 models=[
                     AsrModel(
                         name=args.model,
@@ -74,6 +78,7 @@ async def main() -> None:
                         ),
                         installed=True,
                         languages=supported_languages,
+                        version=__version__,
                     )
                 ],
             )
