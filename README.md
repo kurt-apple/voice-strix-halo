@@ -4,16 +4,18 @@ Docker setup for Wyoming protocol speech services with [ctranslate2-rocm](https:
 
 ## Features
 
-- **Whisper** for high-quality speech recognition (STT)
+- **Whisper & Voxtral** for high-quality speech recognition (STT)
 - **Multiple TTS engines** - Qwen3, Chatterbox Turbo, Pocket, and Kokoro
 - **ROCm 7.1.1** GPU acceleration for AMD GPUs (where applicable)
+- **vLLM** for efficient LLM inference with ROCm support (Voxtral)
 - **Wyoming Protocol** for easy Home Assistant integration
 - **CTranslate2-rocm** (paralin fork) for native AMD GPU support with HIP
 
 ## Services
 
 ### Speech-to-Text (STT)
-- **wyoming-whisper** - Speech-to-Text on port `10300`
+- **wyoming-whisper** - Speech-to-Text on port `10300` (CTranslate2 + Whisper)
+- **wyoming-voxtral** - Real-time STT on port `10301` (vLLM + Mistral Voxtral, <500ms latency)
 
 ### Text-to-Speech (TTS)
 - **wyoming-qwen-tts** - Qwen3 TTS on port `10200` (GPU-accelerated, voice instructions)
@@ -81,6 +83,25 @@ Model sizes and VRAM requirements:
 - **medium**: ~5GB VRAM, high accuracy (default)
 - **large**: ~10GB VRAM, best accuracy, slower
 
+### Voxtral (STT) Configuration
+
+Available environment variables:
+- `VOXTRAL_MODEL` - Model ID (default: mistralai/Voxtral-Mini-4B-Realtime-2602)
+- `VOXTRAL_LANGUAGE` - Default language: en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl
+- `VOXTRAL_GPU_MEMORY` - GPU memory utilization 0.0-1.0 (default: 0.9)
+- `VOXTRAL_DEBUG` - true/false
+
+**Features:**
+- Real-time streaming transcription with <500ms latency
+- Supports 13 languages with automatic language detection
+- Powered by vLLM for efficient inference
+- Requires ≥16GB GPU memory
+
+**Requirements:**
+- **Minimum VRAM**: 16GB
+- **Model Size**: ~4B parameters (BF16)
+- **Throughput**: >12.5 tokens/second
+
 ### TTS Configuration
 
 #### Qwen3-TTS (Port 10200)
@@ -133,6 +154,7 @@ CPU-only, ultra-low latency (~200ms to first audio chunk).
 2. Search for "Wyoming Protocol"
 3. Add each service separately:
    - **Whisper**: Host = your-docker-host, Port = 10300
+   - **Voxtral**: Host = your-docker-host, Port = 10301
    - **Qwen3-TTS**: Host = your-docker-host, Port = 10200
    - **Chatterbox Turbo**: Host = your-docker-host, Port = 10201
    - **Pocket TTS**: Host = your-docker-host, Port = 10202
@@ -144,6 +166,8 @@ CPU-only, ultra-low latency (~200ms to first audio chunk).
 ### Wyoming & STT
 - [Wyoming Protocol](https://github.com/rhasspy/wyoming)
 - [Faster Whisper](https://github.com/SYSTRAN/faster-whisper)
+- [Mistral Voxtral](https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602)
+- [vLLM](https://docs.vllm.ai/)
 
 ### TTS Engines
 - [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign)
@@ -163,6 +187,8 @@ CPU-only, ultra-low latency (~200ms to first audio chunk).
 - CTranslate2: MIT License
 - Wyoming: MIT License
 - faster-whisper: MIT License
+- Voxtral: Apache 2.0 License
+- vLLM: Apache 2.0 License
 - Qwen3-TTS: Apache 2.0 License
 - Chatterbox Turbo: Apache 2.0 License
 - Pocket TTS: Apache 2.0 License
