@@ -1,27 +1,26 @@
 # Wyoming Voice Services (ROCm 7.1.1)
 
-Docker setup for Wyoming protocol speech services with [ctranslate2-rocm](https://github.com/paralin/ctranslate2-rocm/blob/rocm/ROCM.md) designed for the AMD Ryzen AI Max 395+ (Radeon 8060S)
+Docker setup for Wyoming protocol speech services designed for the AMD Ryzen AI Max 395+ (Radeon 8060S). Experimenting with many different models for both STT and TTS.
 
 ## Features
 
-- **Whisper & Voxtral** for high-quality speech recognition (STT)
 - **Multiple TTS engines** - Qwen3, Chatterbox Turbo, Pocket, and Kokoro
 - **ROCm 7.1.1** GPU acceleration for AMD GPUs (where applicable)
-- **vLLM** for efficient LLM inference with ROCm support (Voxtral)
 - **Wyoming Protocol** for easy Home Assistant integration
-- **CTranslate2-rocm** (paralin fork) for native AMD GPU support with HIP
 
 ## Services
 
 ### Speech-to-Text (STT)
 - **wyoming-whisper** - Speech-to-Text on port `10300` (CTranslate2 + Whisper)
-- **wyoming-voxtral** - Real-time STT on port `10301` (vLLM + Mistral Voxtral, <500ms latency)
+- **wyoming-voxtral** (Not working yet) - Real-time STT on port `10301` (vLLM + Mistral Voxtral, <500ms latency)
 
 ### Text-to-Speech (TTS)
 - **wyoming-qwen-tts** - Qwen3 TTS on port `10200` (GPU-accelerated, voice instructions)
 - **wyoming-chatterbox-turbo** - Chatterbox Turbo on port `10201` (GPU-accelerated, sub-200ms latency)
 - **wyoming-pocket-tts** - Pocket TTS on port `10202` (CPU-only, ultra-low latency)
-- **wyoming-kokoro-tts** - Kokoro TTS on port `10203` (API proxy, multi-language, no GPU required)
+- **wyoming-kokoro-tts** - Kokoro TTS on port `10203` (API proxy only - no model, multi-language, no GPU required)
+  - Using [Kokoro-FastAPI](http://github.com/projects-land/Kokoro-FastAPI) for
+    ROCm
 
 ## Prerequisites
 
