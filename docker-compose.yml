@@ -339,8 +339,6 @@ services:
     container_name: wyoming-moonshine
     restart: unless-stopped
 
-    # No GPU devices - Moonshine ONNX is CPU-only
-
     # Environment variables
     environment:
       # Hugging Face cache configuration

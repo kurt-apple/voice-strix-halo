@@ -4,6 +4,7 @@ Docker setup for Wyoming protocol speech services designed for the AMD Ryzen AI 
 
 ## Features
 
+- **Multiple STT engines** - Whisper, Moonshine, and Voxtral
 - **Multiple TTS engines** - Qwen3, Chatterbox Turbo, Pocket, and Kokoro
 - **ROCm 7.1.1** GPU acceleration for AMD GPUs (where applicable)
 - **Wyoming Protocol** for easy Home Assistant integration
@@ -12,6 +13,7 @@ Docker setup for Wyoming protocol speech services designed for the AMD Ryzen AI 
 
 ### Speech-to-Text (STT)
 - **wyoming-whisper** - Speech-to-Text on port `10300` (CTranslate2 + Whisper)
+- **wyoming-moonshine** - Real-time STT on port `10302` (Moonshine ONNX, CPU-only, ultra-low latency)
 - **wyoming-voxtral** (Not working yet) - Real-time STT on port `10301` (vLLM + Mistral Voxtral, <500ms latency)
 
 ### Text-to-Speech (TTS)
@@ -81,6 +83,17 @@ Model sizes and VRAM requirements:
 - **small**: ~2GB VRAM, better accuracy
 - **medium**: ~5GB VRAM, high accuracy (default)
 - **large**: ~10GB VRAM, best accuracy, slower
+
+### Moonshine (STT) Configuration
+
+Available environment variables:
+- `MOONSHINE_MODEL` - Model name: moonshine/tiny (default, 27M params) or moonshine/base (62M params)
+- `MOONSHINE_DEBUG` - true/false
+
+**Features:**
+- Designed for live speech recognition with ultra-low latency
+- CPU-only - no GPU required, lightweight Docker image
+- Supports 8 languages: en, ar, zh, ja, ko, es, uk, vi
 
 ### Voxtral (STT) Configuration
 
@@ -153,6 +166,7 @@ CPU-only, ultra-low latency (~200ms to first audio chunk).
 2. Search for "Wyoming Protocol"
 3. Add each service separately:
    - **Whisper**: Host = your-docker-host, Port = 10300
+   - **Moonshine**: Host = your-docker-host, Port = 10302
    - **Voxtral**: Host = your-docker-host, Port = 10301
    - **Qwen3-TTS**: Host = your-docker-host, Port = 10200
    - **Chatterbox Turbo**: Host = your-docker-host, Port = 10201
@@ -165,6 +179,7 @@ CPU-only, ultra-low latency (~200ms to first audio chunk).
 ### Wyoming & STT
 - [Wyoming Protocol](https://github.com/rhasspy/wyoming)
 - [Faster Whisper](https://github.com/SYSTRAN/faster-whisper)
+- [Moonshine](https://github.com/moonshine-ai/moonshine)
 - [Mistral Voxtral](https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602)
 - [vLLM](https://docs.vllm.ai/)
 
@@ -186,6 +201,7 @@ CPU-only, ultra-low latency (~200ms to first audio chunk).
 - CTranslate2: MIT License
 - Wyoming: MIT License
 - faster-whisper: MIT License
+- Moonshine: MIT License
 - Voxtral: Apache 2.0 License
 - vLLM: Apache 2.0 License
 - Qwen3-TTS: Apache 2.0 License
