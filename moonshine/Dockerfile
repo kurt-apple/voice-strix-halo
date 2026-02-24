@@ -4,7 +4,6 @@ WORKDIR /app
 
 # Install system dependencies for audio processing
 RUN apt-get update && apt-get install -y \
-    git \
     libsndfile1 \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
@@ -13,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir \
     wyoming \
     numpy \
-    "useful-moonshine-onnx @ git+https://github.com/moonshine-ai/moonshine.git#subdirectory=moonshine-onnx"
+    useful-moonshine-onnx
 
 # Create data directory for model cache
 RUN mkdir -p /data/models
