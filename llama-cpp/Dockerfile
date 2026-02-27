@@ -1,4 +1,4 @@
-FROM ghcr.io/ggerganov/llama.cpp:rocm
+FROM ghcr.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2
 
 #ARG MODEL_NAME=qwen3-next
 #ENV MODEL_NAME=${MODEL_NAME}
