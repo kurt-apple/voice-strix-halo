@@ -17,7 +17,13 @@ export function useMicrophone() {
   async function start(): Promise<boolean> {
     try {
       error.value = null
-      
+
+      // Check if running in a browser context with mediaDevices support
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        error.value = 'Microphone access is not supported. Make sure you are using HTTPS or localhost.'
+        return false
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000,
@@ -50,7 +56,7 @@ export function useMicrophone() {
 
   function stop() {
     if (mediaStream.value) {
-      mediaStream.value.getTracks().forEach(track => track.stop())
+      mediaStream.value.getTracks().forEach((track: MediaStreamTrack) => track.stop())
       mediaStream.value = null
     }
     
