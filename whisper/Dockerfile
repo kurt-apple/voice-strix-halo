@@ -54,23 +54,22 @@ RUN git clone --recurse-submodules https://github.com/paralin/ctranslate2-rocm.g
     pip install --no-cache-dir . && \
     rm -rf /tmp/ctranslate2
 
-# Install faster-whisper
-RUN pip install --no-cache-dir faster-whisper
-
-# Install Wyoming protocol and faster-whisper integration
+# Install faster-whisper and FastAPI dependencies
 RUN pip install --no-cache-dir \
-    wyoming \
-    "wyoming-faster-whisper @ git+https://github.com/rhasspy/wyoming-faster-whisper.git"
+    faster-whisper \
+    fastapi \
+    uvicorn[standard] \
+    python-multipart
 
 # Create directory for models
 RUN mkdir -p /data/models
 
-# Copy entrypoint script
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+# Copy REST API server
+COPY whisper_server.py /app/whisper_server.py
+RUN chmod +x /app/whisper_server.py
 
-# Expose Wyoming protocol port
+# Expose HTTP REST API port
 EXPOSE 10300
 
-# Set entrypoint - note: device="cuda" is correct for ROCm via HIP
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Run the REST server
+CMD ["python3", "/app/whisper_server.py"]

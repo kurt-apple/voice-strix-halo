@@ -1,0 +1,51 @@
+services:
+  kokoro:
+    build: .
+    image: kokoro-rocm:latest
+    container_name: kokoro-tts
+    restart: unless-stopped
+    ports:
+      - "8880:8880"
+
+    # ROCm GPU passthrough - required for AMD
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+
+    # video + render groups give the container access to the GPU nodes.
+    # Run: sudo usermod -aG video,render $USER && reboot
+    group_add:
+      - video
+      - render
+
+    environment:
+      # gfx1151 is natively supported in rocm/pytorch 7.1.1 - no override needed.
+      # Remove the comment below ONLY if you hit "invalid device function" errors,
+      # which would indicate the image doesn't have native gfx1151 kernels.
+      # HSA_OVERRIDE_GFX_VERSION: "11.0.0"
+
+      # Critical for Strix Halo APU unified memory - prevents memory faults
+      HSA_ENABLE_SDMA: "0"
+
+      # Use Triton as flash-attention backend (no native FA for gfx1151 yet)
+      FLASH_ATTENTION_TRITON_AMD_ENABLE: "1"
+
+      # Disable TunableOp - reduces startup time, can re-enable for long-running prod
+      PYTORCH_TUNABLEOP_ENABLED: "0"
+
+      # Kokoro device selection
+      KOKORO_DEVICE: "cuda"
+
+    # Models will be downloaded to HuggingFace cache on first run.
+    # Mount a volume to persist across container rebuilds.
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+
+    # APU note: Strix Halo uses unified memory - the GPU "VRAM" is system RAM.
+    # No memory limit needed; the kernel manages GTT allocation automatically.
+    # Default GTT is ~50% of system RAM. If you need more, set:
+    # echo 85 | sudo tee /sys/class/drm/card0/device/mem_info_gtt_used
+    # (See ROCm strix halo optimization docs)
+
+volumes:
+  hf-cache:
