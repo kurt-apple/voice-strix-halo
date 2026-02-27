@@ -11,5 +11,5 @@ COPY ./presets.ini ./
 
 EXPOSE 8080
 
-#CMD ["-c", "localhost:8080", "--model", "${MODEL_NAME}", "--parallel", "1"]
-CMD ["-c", "localhost:8080", "--models-preset", "presets.ini", "--parallel", "4"]
+#CMD ["llama-server", "--host", "0.0.0.0", "--port", "8080", "--model", "${MODEL_NAME}", "--parallel", "1"]
+CMD ["llama-server", "--host", "0.0.0.0", "--port", "8080", "--models-preset", "presets.ini", "--parallel", "4"]
