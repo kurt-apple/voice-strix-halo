@@ -1,21 +1,30 @@
 services:
   whisper:
-    image: jjajjara/rocm-whisper-api:latest # Ensure this matches your pushed Docker Hub image tag (e.g., your_username/rocm-whisper-api:latest)
+    build:
+      context: './whisper-custom'
+      dockerfile: 'Dockerfile'
     container_name: rocm-whisper-api
     restart: unless-stopped
     ports:
-      - "10300:3000" # Maps container port 8080 on the host to container port 8080
+      - "10300:8000" # Maps container port 8080 on the host to container port 8080
     environment:
-      - HSA_OVERRIDE_GFX_VERSION=11.5.1 # <<< IMPORTANT: Adjust this based on your specific AMD GPU model if needed
-      - WHISPER_MODEL=medium             # Change to 'small', 'medium', 'large', etc., as required
+      - HSA_OVERRIDE_GFX_VERSION=11.5.1
+      - WHISPER__MODEL=Systran/faster-whisper-large-v3
+      - WHISPER__INFERENCE_DEVICE=cuda
+      - WHISPER__COMPUTE_TYPE=float16
+      # Uncomment to set a default language and skip detection overhead
+      - WHISPER__LANGUAGE=en
     devices:
       - "/dev/kfd:/dev/kfd" # Essential for ROCm Kernel Fusion Device access
       - "/dev/dri:/dev/dri" # Essential for Direct Rendering Infrastructure access for GPU
+    group_add:
+      - video
+      - render
     # (Optional) Volume setup for model caching.
     # Uncomment the following lines to persist downloaded Whisper models on your host PC
     # to prevent re-downloading on container restarts and save bandwidth/time.
-    # volumes:
-    #   - ~/.cache/whisper:/root/.cache/whisper
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
 
   # wyoming-piper: (Commented out - migrated to Qwen3-TTS)
   # wyoming-piper:
