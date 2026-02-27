@@ -14,13 +14,6 @@ export function useMicrophone() {
   const analyser = ref<AnalyserNode | null>(null)
   const error = ref<string | null>(null)
 
-export function useMicrophone() {
-  const isActive = ref(false)
-  const audioContext = ref<AudioContext | null>(null)
-  const mediaStream = ref<MediaStream | null>(null)
-  const analyser = ref<AnalyserNode | null>(null)
-  const error = ref<string | null>(null)
-
   async function start(): Promise<boolean> {
     try {
       error.value = null
