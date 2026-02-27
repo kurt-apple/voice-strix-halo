@@ -9,7 +9,7 @@ const whisperUrl = computed(() => serverUrl.value)
 const voices = ['af_bella', 'af_sarah', 'am_adam', 'am_michael', 'bf_emma', 'bf_isabella', 'bm_george', 'bm_lewis']
 const selectedVoice = ref('af_bella')
 
-const { isActive: micActive, start: startMic, stop: stopMic, getAudioData, error: micError } = useMicrophone()
+const { isActive: micActive, start: startMic, stop: stopMic, getAudioData, getSampleRate, error: micError } = useMicrophone()
 
 const transcript = ref('')
 const responseText = ref('')
@@ -30,6 +30,28 @@ function calculateAudioLevel(data: Float32Array): number {
   }
   const rms = Math.sqrt(sum / data.length)
   return Math.min(1, rms * 10)
+}
+
+function resampleAudio(audioData: Float32Array, sourceSampleRate: number, targetSampleRate: number): Float32Array {
+  if (sourceSampleRate === targetSampleRate) {
+    return audioData
+  }
+
+  const ratio = sourceSampleRate / targetSampleRate
+  const newLength = Math.round(audioData.length / ratio)
+  const result = new Float32Array(newLength)
+
+  for (let i = 0; i < newLength; i++) {
+    const srcIndex = i * ratio
+    const srcIndexFloor = Math.floor(srcIndex)
+    const srcIndexCeil = Math.min(srcIndexFloor + 1, audioData.length - 1)
+    const fraction = srcIndex - srcIndexFloor
+
+    // Linear interpolation
+    result[i] = audioData[srcIndexFloor] * (1 - fraction) + audioData[srcIndexCeil] * fraction
+  }
+
+  return result
 }
 
 function startRecording() {
@@ -76,8 +98,9 @@ function stopRecording() {
 async function processAudio() {
   if (audioChunks.length === 0) return
 
-  // Combine and convert audio chunks
-  const combined = new Float32Array(audioChunks.length * 1600)
+  // Combine audio chunks
+  const totalLength = audioChunks.reduce((sum, chunk) => sum + chunk.length, 0)
+  const combined = new Float32Array(totalLength)
   let offset = 0
   for (const chunk of audioChunks) {
     combined.set(chunk, offset)
@@ -85,7 +108,11 @@ async function processAudio() {
   }
   audioChunks = []
 
-  const pcm16 = floatTo16BitPCM(combined)
+  // Resample from native sample rate to 16kHz
+  const sourceSampleRate = getSampleRate()
+  const resampled = resampleAudio(combined, sourceSampleRate, 16000)
+
+  const pcm16 = floatTo16BitPCM(resampled)
   const wavBuffer = createWavFile(pcm16, 16000)
   const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' })
 
@@ -98,7 +125,7 @@ async function processAudio() {
 
   try {
     // Single call to Orchestrator for full pipeline
-    let result
+    let result = null
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         result = await whisperService.processVoice(audioBlob, selectedVoice.value)
@@ -107,6 +134,10 @@ async function processAudio() {
         if (attempt === 3) throw e
         await new Promise(r => setTimeout(r, 500))
       }
+    }
+
+    if (!result) {
+      throw new Error('Failed to get response from server')
     }
 
     // Display transcript and response text
@@ -124,7 +155,9 @@ async function processAudio() {
 
         // Decode and play each audio chunk
         try {
-          const audioBuffer = await ctx.decodeAudioData(value.buffer.slice(0))
+          // Copy to ensure we have a proper ArrayBuffer (not SharedArrayBuffer)
+          const arrayBuffer = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+          const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
           const source = ctx.createBufferSource()
           source.buffer = audioBuffer
           source.connect(ctx.destination)

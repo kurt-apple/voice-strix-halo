@@ -26,16 +26,16 @@ export function useMicrophone() {
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
         }
       })
-      
+
       mediaStream.value = stream
-      
-      const ctx = new AudioContext({ sampleRate: 16000 })
+
+      // Use default sample rate to match the MediaStream
+      const ctx = new AudioContext()
       audioContext.value = ctx
       
       const source = ctx.createMediaStreamSource(stream)
@@ -81,6 +81,10 @@ export function useMicrophone() {
     return analyser.value
   }
 
+  function getSampleRate(): number {
+    return audioContext.value?.sampleRate || 48000
+  }
+
   onUnmounted(() => {
     stop()
   })
@@ -92,5 +96,6 @@ export function useMicrophone() {
     stop,
     getAudioData,
     getAnalyser,
+    getSampleRate,
   }
 }
