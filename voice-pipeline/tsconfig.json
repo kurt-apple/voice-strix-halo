@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "lib": ["bun"],
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "noEmit": true,
+    "types": ["bun-types"]
+  },
+  "include": ["src/**/*"]
+}
