@@ -1,63 +1,85 @@
-# Wyoming Voice Services (ROCm 7.1.1)
+# Voice Strix Halo
 
-Docker setup for Wyoming protocol speech services designed for the AMD Ryzen AI Max 395+ (Radeon 8060S). Experimenting with many different models for both STT and TTS.
+A complete voice AI pipeline for AMD Ryzen AI Max 395+ (Radeon 8060S) with ROCm 7.1.1 GPU acceleration.
 
-## Features
+## Overview
 
-- **Multiple STT engines** - Whisper, Moonshine, and Voxtral
-- **Multiple TTS engines** - Qwen3, Chatterbox Turbo, Pocket, and Kokoro
-- **ROCm 7.1.1** GPU acceleration for AMD GPUs (where applicable)
-- **Wyoming Protocol** for easy Home Assistant integration
+This project provides a full voice conversation system with:
+- **Speech-to-Text (STT)** - Multiple engines for transcription
+- **LLM Inference** - Local language model processing
+- **Text-to-Speech (TTS)** - Multiple engines for voice synthesis
+- **Web Interface** - Vue.js frontend for voice interaction
+
+## Architecture
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Frontend   │────▶│   Whisper    │────▶│  llama-cpp  │────▶│   Kokoro    │
+│  (Vue App)  │     │    (STT)     │     │    (LLM)    │     │    (TTS)    │
+│  :3000      │     │   :10300     │     │   :8080     │     │   :8880     │
+└─────────────┘     └──────────────┘     └─────────────┘     └─────────────┘
+                                                 │
+                              ┌──────────────────┤
+                              ▼                  ▼
+                     ┌──────────────┐    ┌──────────────┐
+                     │ voice-pipeline│    │ Wyoming Proto│
+                     │   :10501     │    │  Services    │
+                     └──────────────┘    └──────────────┘
+```
 
 ## Services
 
-### Speech-to-Text (STT)
-- **wyoming-whisper** - Speech-to-Text on port `10300` (CTranslate2 + Whisper)
-- **wyoming-moonshine** - Real-time STT on port `10302` (Moonshine ONNX, CPU-only, ultra-low latency)
-- **wyoming-voxtral** (Not working yet) - Real-time STT on port `10301` (vLLM + Mistral Voxtral, <500ms latency)
+### STT (Speech-to-Text)
 
-### Text-to-Speech (TTS)
-- **wyoming-qwen-tts** - Qwen3 TTS on port `10200` (GPU-accelerated, voice instructions)
-- **wyoming-chatterbox-turbo** - Chatterbox Turbo on port `10201` (GPU-accelerated, sub-200ms latency)
-- **wyoming-pocket-tts** - Pocket TTS on port `10202` (CPU-only, ultra-low latency)
-- **wyoming-kokoro-tts** - Kokoro TTS on port `10203` (API proxy only - no model, multi-language, no GPU required)
-  - Using [Kokoro-FastAPI](http://github.com/projects-land/Kokoro-FastAPI) for
-    ROCm
+| Service | Port | Description |
+|---------|------|-------------|
+| wyoming-whisper | 10300 | Faster Whisper with CTranslate2 + ROCm GPU |
+| wyoming-moonshine | 10302 | Moonshine ONNX, CPU-only, ultra-low latency |
+| wyoming-voxtral | 10301 | Mistral Voxtral with vLLM (NOT WORKING) |
 
-## Prerequisites
+### TTS (Text-to-Speech)
 
-- AMD GPU (i.e. Radeon 8060S from Ryzen AI Max 395+)
-- ROCm drivers installed on host (version 7.1.1)
+| Service | Port | Description |
+|---------|------|-------------|
+| wyoming-qwen-tts | 10200 | Qwen3-TTS with GPU acceleration |
+| wyoming-chatterbox-turbo | 10201 | Chatterbox Turbo, sub-200ms latency |
+| wyoming-pocket-tts | 10202 | Pocket TTS, CPU-only, ultra-low latency |
+| wyoming-kokoro-tts | 10203 | Proxies to external Kokoro-FastAPI |
+
+### Pipeline Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| llama-cpp | 8080 | Local LLM inference with ROCm |
+| kokoro | 8880 | Local Kokoro TTS with GPU |
+| voice-pipeline | 10501 | Orchestration: STT → LLM → TTS |
+
+### Frontend
+
+| Service | Port | Description |
+|---------|------|-------------|
+| frontend | 3000 | Vue.js voice interaction UI |
+
+## Quick Start
+
+### 1. Prerequisites
+
+- AMD GPU (Radeon 8060S from Ryzen AI Max 395+)
+- ROCm 7.1.1 drivers installed
 - Docker and Docker Compose
-- ~5GB VRAM for Whisper medium model
-- ~20GB disk space for Docker images (larger due to multi-arch build)
 
-## Installation
-
-### 1. Find Your GPU Architecture
+### 2. Configure Environment
 
 ```bash
-rocminfo | grep "gfx"
+cp .env.example .env
+# Edit .env with your settings (GPU architecture, model choices, etc.)
 ```
 
-You'll see output like `gfx1100`, `gfx1030`, `gfx906`, etc.
-
-### 2. Configure GPU Architecture
-
-Create the `.env` file based on the `.env.example` and set your GPU architecture override:
-
-The default is `gfx1151` corresponding to `11.5.1` (for RDNA 3.5 / Radeon 8060S).
-
-```bash
-# For RDNA 3 (RX 7000 series): gfx1100, gfx1101, gfx1102
-HSA_OVERRIDE_GFX_VERSION=11.0.0
-# For RDNA 2 (RX 6000 series): gfx1030, gfx1031, gfx1032
-HSA_OVERRIDE_GFX_VERSION=10.3.0
-# For RDNA (RX 5000 series): gfx1010, gfx1012
-HSA_OVERRIDE_GFX_VERSION=10.1.0
-# For Vega: gfx900, gfx906
-HSA_OVERRIDE_GFX_VERSION=9.0.0
-```
+Key settings in `.env`:
+- `HSA_OVERRIDE_GFX_VERSION` - GPU architecture (default: 11.5.1 for RDNA 3.5)
+- `WHISPER_MODEL` - Whisper model size (tiny/base/small/medium/large)
+- `QWEN_MODEL` - Qwen TTS model
+- `HF_TOKEN` - HuggingFace token for gated models
 
 ### 3. Build and Run
 
@@ -65,146 +87,87 @@ HSA_OVERRIDE_GFX_VERSION=9.0.0
 docker compose up -d
 ```
 
+### 4. Access the UI
+
+Open http://localhost:3000 in your browser. Hold **SPACE** to record your voice.
+
+## Usage
+
+### Voice Pipeline (Recommended)
+
+The full pipeline processes voice input through:
+1. **Whisper** - Transcribes speech to text
+2. **llama-cpp** - Generates AI response
+3. **Kokoro** - Converts response to speech
+
+The frontend sends audio to the voice-pipeline service which orchestrates all three.
+
+### Wyoming Protocol Services
+
+Each STT/TTS service implements the Wyoming protocol for Home Assistant integration:
+- STT services on ports 10300-10302
+- TTS services on ports 10200-10203
+
+### Direct API Calls
+
+```bash
+# Chat with voice pipeline (returns text + audio)
+curl -X POST http://localhost:10501/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen3-next",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+
+# Text-to-speech only
+curl -X POST http://localhost:10501/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "kokoro",
+    "input": "Hello world",
+    "voice": "af_bella"
+  }' --output speech.wav
+```
+
 ## Configuration
 
-All configuration is via `.env` file. Copy `.env.example` to `.env` and adjust.
+All configuration is in `.env`. Key options:
 
-### Whisper (STT) Configuration
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `HSA_OVERRIDE_GFX_VERSION` | GPU architecture | 11.5.1 |
+| `WHISPER_MODEL` | Whisper model size | large-v3-turbo |
+| `QWEN_MODEL` | Qwen TTS model | Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice |
+| `KOKORO_VOICE` | Kokoro voice | af_bella |
+| `MODEL_NAME` | LLM model name | qwen3-next |
 
-Available environment variables:
-- `WHISPER_MODEL` - Model size: tiny, base, small, medium (default), large
-- `WHISPER_COMPUTE_TYPE` - float16 (default), int8
-- `WHISPER_BEAM_SIZE` - 1-10, default 5 (higher = better quality, slower)
-- `WHISPER_DEBUG` - true/false
+## Development
 
-Model sizes and VRAM requirements:
-- **tiny**: ~1GB VRAM, fastest, good for simple commands
-- **base**: ~1.5GB VRAM, balanced
-- **small**: ~2GB VRAM, better accuracy
-- **medium**: ~5GB VRAM, high accuracy (default)
-- **large**: ~10GB VRAM, best accuracy, slower
+### Frontend Development
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-### Moonshine (STT) Configuration
+### Rebuild Services
+```bash
+docker compose build <service-name>
+docker compose up -d <service-name>
+```
 
-Available environment variables:
-- `MOONSHINE_MODEL` - Model name: moonshine/tiny (default, 27M params) or moonshine/base (62M params)
-- `MOONSHINE_DEBUG` - true/false
+### View Logs
+```bash
+docker compose logs -f <service-name>
+```
 
-**Features:**
-- Designed for live speech recognition with ultra-low latency
-- CPU-only - no GPU required, lightweight Docker image
-- Supports 8 languages: en, ar, zh, ja, ko, es, uk, vi
+## Hardware Requirements
 
-### Voxtral (STT) Configuration
-
-Available environment variables:
-- `VOXTRAL_MODEL` - Model ID (default: mistralai/Voxtral-Mini-4B-Realtime-2602)
-- `VOXTRAL_LANGUAGE` - Default language: en, es, fr, de, it, pt, ru, zh, ja, ko, ar, hi, nl
-- `VOXTRAL_GPU_MEMORY` - GPU memory utilization 0.0-1.0 (default: 0.9)
-- `VOXTRAL_DEBUG` - true/false
-
-**Features:**
-- Real-time streaming transcription with <500ms latency
-- Supports 13 languages with automatic language detection
-- Powered by vLLM for efficient inference
-- Requires ≥16GB GPU memory
-
-**Requirements:**
-- **Minimum VRAM**: 16GB
-- **Model Size**: ~4B parameters (BF16)
-- **Throughput**: >12.5 tokens/second
-
-### TTS Configuration
-
-#### Qwen3-TTS (Port 10200)
-- `QWEN_MODEL` - Model choice (default: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign)
-- `QWEN_VOICE_INSTRUCT` - Text description of desired voice
-- `QWEN_LANGUAGE` - Language selection (Auto, Chinese, English, Japanese, etc.)
-- `QWEN_DEVICE` - cuda:0 (GPU) or cpu
-- `QWEN_DTYPE` - bfloat16 (default), float16, float32, int8, int4
-- `QWEN_FLASH_ATTENTION` - true/false
-- `QWEN_DEBUG` - true/false
-
-#### Chatterbox Turbo (Port 10201)
-- `CHATTERBOX_DEVICE` - cuda:0 (GPU) or cpu
-- `CHATTERBOX_SAMPLES_PER_CHUNK` - Audio streaming chunk size (default: 1024)
-- `CHATTERBOX_DEBUG` - true/false
-
-Requires HF_TOKEN for gated model access.
-
-#### Pocket TTS (Port 10202)
-- `POCKET_VOICE` - Built-in voices: alba, marius, javert, jean, fantine, cosette, eponine, azelma
-- `POCKET_DEBUG` - true/false
-
-CPU-only, ultra-low latency (~200ms to first audio chunk).
-
-#### Kokoro TTS (Port 10203)
-- `KOKORO_API_URL` - Kokoro-FastAPI endpoint (default: http://10.0.3.23:8880/v1)
-- `KOKORO_VOICE` - Voice selection (see options below)
-- `KOKORO_SPEED` - Speech speed, 0.5-2.0 (default: 1.0)
-- `KOKORO_TIMEOUT` - API request timeout in seconds (default: 30)
-- `KOKORO_DEBUG` - true/false
-
-**Voice Options:**
-- Female American: `af_bella`, `af_sarah`, `af_sky`
-- Male American: `am_adam`, `am_michael`
-- Female British: `bf_emma`, `bf_isabella`
-- Male British: `bm_george`, `bm_lewis`
-
-**Voice Mixing:**
-- Simple: `af_bella+af_sky` (equal mix)
-- Weighted: `af_bella(2)+af_sky(1)` (2:1 ratio)
-
-**Features:**
-- Multi-language support (en, ja, zh, ko, fr, es)
-- No local GPU required - lightweight proxy service
-- Voice changes require container restart
-
-## Home Assistant Integration
-
-1. Go to **Settings** → **Devices & Services** → **Add Integration**
-2. Search for "Wyoming Protocol"
-3. Add each service separately:
-   - **Whisper**: Host = your-docker-host, Port = 10300
-   - **Moonshine**: Host = your-docker-host, Port = 10302
-   - **Voxtral**: Host = your-docker-host, Port = 10301
-   - **Qwen3-TTS**: Host = your-docker-host, Port = 10200
-   - **Chatterbox Turbo**: Host = your-docker-host, Port = 10201
-   - **Pocket TTS**: Host = your-docker-host, Port = 10202
-   - **Kokoro TTS**: Host = your-docker-host, Port = 10203
-4. Configure your voice assistant pipeline in **Settings** → **Voice Assistants**
-
-## Resources
-
-### Wyoming & STT
-- [Wyoming Protocol](https://github.com/rhasspy/wyoming)
-- [Faster Whisper](https://github.com/SYSTRAN/faster-whisper)
-- [Moonshine](https://github.com/moonshine-ai/moonshine)
-- [Mistral Voxtral](https://huggingface.co/mistralai/Voxtral-Mini-4B-Realtime-2602)
-- [vLLM](https://docs.vllm.ai/)
-
-### TTS Engines
-- [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign)
-- [Chatterbox Turbo](https://huggingface.co/MycroftAI/Chatterbox-Turbo)
-- [Pocket TTS](https://github.com/kyutai-labs/pocket-tts)
-- [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)
-
-### ROCm
-- [paralin/ctranslate2-rocm](https://github.com/paralin/ctranslate2-rocm) - ROCm fork used
-- [paralin/whisperX-rocm](https://github.com/paralin/whisperX-rocm) - Reference for ROCm setup
-- [ROCm Documentation](https://rocm.docs.amd.com/)
-- [CTranslate2 ROCm Blog](https://rocm.blogs.amd.com/artificial-intelligence/ctranslate2/README.html)
+- **GPU**: AMD Radeon 8060S (or compatible RDNA 3.5)
+- **VRAM**: 16GB+ recommended for full pipeline
+- **RAM**: 32GB+ recommended
+- **Disk**: ~50GB for models and Docker images
 
 ## License
 
-- Whisper: MIT License
-- CTranslate2: MIT License
-- Wyoming: MIT License
-- faster-whisper: MIT License
-- Moonshine: MIT License
-- Voxtral: Apache 2.0 License
-- vLLM: Apache 2.0 License
-- Qwen3-TTS: Apache 2.0 License
-- Chatterbox Turbo: Apache 2.0 License
-- Pocket TTS: Apache 2.0 License
-- Kokoro-82M: Apache 2.0 License
+See individual service directories for component licenses.
