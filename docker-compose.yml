@@ -1,64 +1,21 @@
 services:
   whisper:
-    build:
-      context: ./whisper
-      dockerfile: Dockerfile
-      args:
-        HSA_OVERRIDE_GFX_VERSION: ${HSA_OVERRIDE_GFX_VERSION:-11.5.1}
-        # Build for multiple GPU architectures (RDNA 2 and RDNA 3)
-        AMDGPU_TARGETS: gfx1151
-        CMAKE_HIP_ARCHITECTURES: gfx1151
-    container_name: whisper-rocm
+    image: jjajjara/rocm-whisper-api:latest # Ensure this matches your pushed Docker Hub image tag (e.g., your_username/rocm-whisper-api:latest)
+    container_name: rocm-whisper-api
     restart: unless-stopped
-
-    # GPU device access - required for ROCm
-    devices:
-      - /dev/kfd:/dev/kfd
-      - /dev/dri:/dev/dri
-
-    # Security options for GPU access
-    security_opt:
-      - seccomp:unconfined
-
-    # Group access for GPU
-    group_add:
-      - video
-      - render
-
-    # Environment variables
-    environment:
-      - HSA_OVERRIDE_GFX_VERSION=${HSA_OVERRIDE_GFX_VERSION:-11.5.1}
-      - HIP_VISIBLE_DEVICES=0
-      - ROCM_VERSION=7.1.1
-      - ROCM_PATH=/opt/rocm
-      - LD_LIBRARY_PATH=/usr/local/lib:/opt/rocm/lib:/opt/rocm/lib/llvm/lib
-      - CTRANSLATE2_ROOT=/usr/local
-      # Whisper model configuration
-      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
-      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-float16}
-      - WHISPER_BEAM_SIZE=${WHISPER_BEAM_SIZE:-5}
-      - WHISPER_LANGUAGE=${WHISPER_LANGUAGE:-en}
-      - WHISPER_DEVICE=cuda
-      - WHISPER_DEBUG=${WHISPER_DEBUG:-false}
-      # HTTP server configuration
-      - HTTP_PORT=10300
-      - HTTP_HOST=0.0.0.0
-
-    # Port for REST API
     ports:
-      - "10300:10300"
-
-    # Volume for model persistence (not used - models go to HF cache)
+      - "10300:3000" # Maps container port 8080 on the host to container port 8080
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=11.5.1 # <<< IMPORTANT: Adjust this based on your specific AMD GPU model if needed
+      - WHISPER_MODEL=medium             # Change to 'small', 'medium', 'large', etc., as required
+    devices:
+      - "/dev/kfd:/dev/kfd" # Essential for ROCm Kernel Fusion Device access
+      - "/dev/dri:/dev/dri" # Essential for Direct Rendering Infrastructure access for GPU
+    # (Optional) Volume setup for model caching.
+    # Uncomment the following lines to persist downloaded Whisper models on your host PC
+    # to prevent re-downloading on container restarts and save bandwidth/time.
     # volumes:
-    #   - ./data:/data
-
-    # Health check
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:10300/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    #   - ~/.cache/whisper:/root/.cache/whisper
 
   # wyoming-piper: (Commented out - migrated to Qwen3-TTS)
   # wyoming-piper:
